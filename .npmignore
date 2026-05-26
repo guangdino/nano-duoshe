@@ -1,0 +1,30 @@
+# Source not shipped — only dist
+src/
+__tests__/
+**/*.test.ts
+**/*.test.js
+
+# Configs not needed at runtime
+tsconfig.json
+tsconfig.build.json
+biome.json
+vitest.config.ts
+.github/
+
+# Local dogfood data
+.duoshe/
+
+# Build artifacts
+*.tsbuildinfo
+coverage/
+
+# Design docs (live in repo, not in package)
+DESIGN.md
+docs/
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp

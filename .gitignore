@@ -1,0 +1,40 @@
+# Build output
+dist/
+*.tsbuildinfo
+
+# Dependencies
+node_modules/
+
+# Coverage / test artifacts
+coverage/
+.nyc_output/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor
+.vscode/*
+!.vscode/settings.json.example
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# DuoShe local data (when dogfooding in this repo)
+.duoshe/config.json
+.duoshe/SESSIONS/
+.duoshe/CANDIDATES/
+.duoshe/index.db
+.duoshe/index.db-journal
+.duoshe/index.db-wal
+.duoshe/index.db-shm
+
+# Env
+.env
+.env.local
+.env.*.local
