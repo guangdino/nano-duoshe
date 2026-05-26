@@ -1,5 +1,7 @@
 # nano-duoshe
 
+> 遭啦遭啦，AI 智能体夺舍了我的项目，这下硅基永生了。
+>
 > Local-first project memory for AI coding agents.
 >
 > Keep architecture decisions, project conventions, and solved bugs next to your code, then make them searchable for Claude Code, Codex, Cursor, and other agent workflows.
