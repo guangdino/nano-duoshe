@@ -34,6 +34,7 @@ describe("vault", () => {
     expect(r.created).toBe(true);
     expect(vaultExists(dir)).toBe(true);
     expect(existsSync(r.paths.project)).toBe(true);
+    expect(existsSync(r.paths.codeMap)).toBe(true);
     expect(existsSync(r.paths.decisions)).toBe(true);
     expect(existsSync(r.paths.troubleshooting)).toBe(true);
     expect(existsSync(r.paths.modules)).toBe(true);
@@ -49,6 +50,7 @@ describe("vault", () => {
     expect(cfg).not.toBeNull();
     expect(cfg?.version).toBe("0.1");
     expect(cfg?.contextFiles).toContain("PROJECT.md");
+    expect(cfg?.contextFiles).toContain("CODEMAP.md");
     expect(cfg?.allowAgentPublish).toBe(false);
   });
 
@@ -59,6 +61,14 @@ describe("vault", () => {
     expect(project).toContain("Node");
     expect(project).toContain("src/");
     expect(project).toContain("src/index.ts");
+  });
+
+  it("renders a CODEMAP.md with graph and directory hints", () => {
+    initVault({ projectRoot: dir, scan: fakeScan(dir), git: fakeGit });
+    const codeMap = readFileSync(join(dir, ".duoshe", "CODEMAP.md"), "utf8");
+    expect(codeMap).toContain("```mermaid");
+    expect(codeMap).toContain("src/");
+    expect(codeMap).toContain("src/index.ts");
   });
 
   it("preserves user-confirmed sections on re-init without --force", () => {
@@ -82,6 +92,12 @@ describe("vault", () => {
     const r2 = initVault({ projectRoot: dir, scan: fakeScan(dir), git: fakeGit, force: false });
     expect(r2.fileActions["PROJECT.md"]).toBe("skipped-existing");
     expect(readFileSync(projectPath, "utf8")).toBe("# Edited\n");
+  });
+
+  it("does not treat the draft banner instructions as user confirmation", () => {
+    initVault({ projectRoot: dir, scan: fakeScan(dir), git: fakeGit });
+    const r2 = initVault({ projectRoot: dir, scan: fakeScan(dir), git: fakeGit, force: true });
+    expect(r2.fileActions["PROJECT.md"]).toBe("wrote");
   });
 
   it("overwrites existing files with --force (when not user-confirmed)", () => {

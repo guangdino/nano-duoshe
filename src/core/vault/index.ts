@@ -4,6 +4,7 @@ import type { GitInsights, ProjectScan } from "../types.js";
 import { defaultConfig, writeConfig } from "./config.js";
 import { vaultPathsFor, type VaultPaths } from "./paths.js";
 import {
+  renderCodeMapMd,
   renderDecisionsMd,
   renderModulesMd,
   renderProjectMd,
@@ -18,7 +19,7 @@ export function vaultExists(projectRoot: string): boolean {
   return existsSync(vaultPathsFor(projectRoot).vault);
 }
 
-const USER_CONFIRMED_MARKER = /<!--\s*USER-CONFIRMED\s*-->/i;
+const USER_CONFIRMED_MARKER = /^<!--\s*USER-CONFIRMED\s*-->\s*$/im;
 
 function isUserConfirmed(path: string): boolean {
   if (!existsSync(path)) return false;
@@ -78,6 +79,7 @@ export function initVault(opts: {
 
   const fileActions: VaultInitResult["fileActions"] = {
     "PROJECT.md": writeMd(paths.project, renderProjectMd({ projectName, scan: opts.scan, git: opts.git }), { force }),
+    "CODEMAP.md": writeMd(paths.codeMap, renderCodeMapMd({ projectName, scan: opts.scan, git: opts.git }), { force }),
     "DECISIONS.md": writeMd(paths.decisions, renderDecisionsMd(), { force }),
     "TROUBLESHOOTING.md": writeMd(paths.troubleshooting, renderTroubleshootingMd(), { force }),
     "MODULES.md": writeMd(paths.modules, renderModulesMd({ scan: opts.scan }), { force }),

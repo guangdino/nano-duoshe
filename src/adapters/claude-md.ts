@@ -24,6 +24,7 @@ export function buildShellBlock(): string {
     "Authoritative memory lives in `.duoshe/`:",
     "",
     "- `.duoshe/PROJECT.md` — project overview, tech stack, conventions",
+    "- `.duoshe/CODEMAP.md` — code graph, entry points, routing notes",
     "- `.duoshe/DECISIONS.md` — architecture decisions (with rationale)",
     "- `.duoshe/TROUBLESHOOTING.md` — known issues and how to fix them",
     "- `.duoshe/MODULES.md` — module boundaries (what each part owns and does NOT own)",

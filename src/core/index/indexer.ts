@@ -7,6 +7,7 @@ import { bigramize } from "./tokenize.js";
 
 const FILE_TO_TYPE: Record<string, string> = {
   "PROJECT.md": "project",
+  "CODEMAP.md": "code_map",
   "DECISIONS.md": "decision",
   "TROUBLESHOOTING.md": "troubleshooting",
   "MODULES.md": "module",

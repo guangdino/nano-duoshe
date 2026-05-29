@@ -9,12 +9,14 @@ import {
 } from "../../adapters/claude-md.js";
 import { fullScan } from "../../core/scanner/index.js";
 import { initVault, vaultExists, vaultPathsFor } from "../../core/vault/index.js";
+import { runGuide } from "./guide.js";
 import { log } from "../log.js";
 
 type InitOptions = {
   force?: boolean;
   quick?: boolean;
   withHooks?: boolean;
+  guided?: boolean;
   shells?: "auto" | "always" | "never";
 };
 
@@ -71,6 +73,11 @@ async function runInit(opts: InitOptions): Promise<void> {
     log.warn("hooks template not yet implemented (planned for M6) — coming soon");
   }
 
+  if (opts.guided) {
+    log.blank();
+    await runGuide(root);
+  }
+
   const elapsed = ((Date.now() - start) / 1000).toFixed(1);
   log.blank();
   log.raw(kleur.green().bold("DuoShe is ready."));
@@ -79,8 +86,9 @@ async function runInit(opts: InitOptions): Promise<void> {
   log.blank();
   log.raw(kleur.bold("Next steps:"));
   log.raw(`  1. Review ${kleur.cyan(".duoshe/PROJECT.md")} (about 2 minutes)`);
-  log.raw(`  2. Try: ${kleur.cyan("duoshe remember \"don't auto-format generated SQL\" --type decision")}`);
-  log.raw(`  3. Add MCP to Claude Code (.mcp.json):`);
+  log.raw(`  2. Run: ${kleur.cyan("duoshe guide")} to answer a few setup questions`);
+  log.raw(`  3. Try: ${kleur.cyan("duoshe remember \"don't auto-format generated SQL\" --type decision")}`);
+  log.raw(`  4. Add MCP to Claude Code (.mcp.json):`);
   log.raw(`     ${kleur.gray('{ "mcpServers": { "duoshe": { "command": "npx", "args": ["-y", "duoshe", "mcp"] } } }')}`);
   log.blank();
 }
@@ -126,9 +134,10 @@ async function runUninstall(): Promise<void> {
 export function registerInitCommand(program: Command): void {
   program
     .command("init")
-    .description("initialize a .duoshe/ vault in the current project (scans code skeleton, generates PROJECT.md / MODULES.md drafts)")
+    .description("initialize a .duoshe/ vault in the current project (scans code skeleton, generates PROJECT.md / CODEMAP.md / MODULES.md drafts)")
     .option("--force", "overwrite existing .duoshe/ files (preserves <!-- USER-CONFIRMED --> sections)")
     .option("--quick", "skip git history scan (faster on huge repos)")
+    .option("--guided", "ask setup questions after init and write guided memory sections")
     .option("--with-hooks", "also generate Claude Code hooks template (M6)")
     .option(
       "--shells <mode>",

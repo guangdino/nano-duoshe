@@ -19,6 +19,18 @@
 
 ---
 
+### `scripts/`
+
+**Role:** build/dev scripts
+
+**Owns:** _(what does this module own?)_
+
+**Does NOT own:** _(what should NEVER live here?)_
+
+**Depends on:** _(internal/external dependencies)_
+
+---
+
 ### `.github/`
 
 **Role:** GitHub workflows/config
@@ -31,9 +43,9 @@
 
 ---
 
-### `scripts/`
+### `docs/`
 
-**Role:** build/dev scripts
+**Role:** documentation
 
 **Owns:** _(what does this module own?)_
 

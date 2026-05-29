@@ -7,6 +7,7 @@ export type VaultPaths = {
   vault: string;
   config: string;
   project: string;
+  codeMap: string;
   decisions: string;
   troubleshooting: string;
   modules: string;
@@ -27,6 +28,7 @@ export function vaultPathsFor(projectRoot: string): VaultPaths {
     vault,
     config: join(vault, "config.json"),
     project: join(vault, "PROJECT.md"),
+    codeMap: join(vault, "CODEMAP.md"),
     decisions: join(vault, "DECISIONS.md"),
     troubleshooting: join(vault, "TROUBLESHOOTING.md"),
     modules: join(vault, "MODULES.md"),

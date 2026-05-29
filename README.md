@@ -26,6 +26,7 @@ DuoShe adds a small, local memory layer inside each repository. It stores long-t
 your-project/
 ├─ .duoshe/
 │  ├─ PROJECT.md          # project overview, stack, conventions
+│  ├─ CODEMAP.md          # code graph, entry points, routing notes
 │  ├─ DECISIONS.md        # architecture decisions and rationale
 │  ├─ TROUBLESHOOTING.md  # known issues and fixes
 │  ├─ MODULES.md          # module boundaries
@@ -46,6 +47,8 @@ DuoShe is `0.1.0-alpha.0`.
 Implemented today:
 
 - initialize `.duoshe/` from a repository scan;
+- generate `CODEMAP.md` with a Mermaid code graph, entry points, directory roles, and hot files;
+- run guided setup with `duoshe guide` or `duoshe init --guided`;
 - generate and update `AGENTS.md` / `CLAUDE.md` shell blocks without clobbering existing content;
 - add candidate memories with `duoshe remember`;
 - review, publish, or reject candidates;
@@ -93,6 +96,12 @@ cd your-project
 duoshe init
 ```
 
+Initialize and immediately answer a few setup questions:
+
+```bash
+duoshe init --guided
+```
+
 Review the generated memory files:
 
 ```bash
@@ -129,6 +138,12 @@ Refresh the search index:
 duoshe reindex
 ```
 
+Run the guided setup again later:
+
+```bash
+duoshe guide
+```
+
 Remove DuoShe blocks from `AGENTS.md` / `CLAUDE.md` without deleting `.duoshe/`:
 
 ```bash
@@ -140,6 +155,8 @@ duoshe uninstall
 | Command | Status | Description |
 | --- | --- | --- |
 | `duoshe init` | available | Create `.duoshe/`, scan the project, and sync shell blocks. |
+| `duoshe init --guided` | available | Initialize, then ask setup questions and write guided memory sections. |
+| `duoshe guide` | available | Add or update guided notes in project memory. |
 | `duoshe rescan` | available | Re-scan the project while preserving existing memory files. |
 | `duoshe sync` | available | Sync DuoShe blocks in `AGENTS.md` and `CLAUDE.md`. |
 | `duoshe remember <content>` | available | Add a pending memory candidate. |

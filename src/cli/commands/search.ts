@@ -97,7 +97,7 @@ async function runReindex(opts: ReindexOpts): Promise<void> {
 export function registerSearchCommand(program: Command): void {
   program
     .command("search <query>")
-    .description("search long-term memory (PROJECT/DECISIONS/TROUBLESHOOTING/MODULES) via SQLite FTS5")
+    .description("search long-term memory (PROJECT/CODEMAP/DECISIONS/TROUBLESHOOTING/MODULES/TODO) via SQLite FTS5")
     .option("--limit <n>", "max results", "8")
     .option("--type <type>", "filter by type: project|decision|troubleshooting|module|session_summary")
     .option("--no-auto-index", "do not build index automatically if missing")

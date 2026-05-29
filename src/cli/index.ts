@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { Command } from "commander";
 import { getVersion } from "../core/version.js";
+import { registerGuideCommand } from "./commands/guide.js";
 import { registerInitCommand } from "./commands/init.js";
 import { registerMcpCommand } from "./commands/mcp.js";
 import { registerRememberCommand } from "./commands/remember.js";
@@ -20,6 +21,7 @@ program
   .helpOption("-h, --help", "show help");
 
 registerInitCommand(program);
+registerGuideCommand(program);
 registerSearchCommand(program);
 registerRememberCommand(program);
 registerReviewCommand(program);
