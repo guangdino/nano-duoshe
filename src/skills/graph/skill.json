@@ -1,8 +1,8 @@
 {
   "name": "graph",
   "version": "0.1.0",
-  "description": "Analyze source file import dependencies, detect cycles, identify hot modules, and write a Mermaid dependency graph to .duoshe/CODEMAP.md",
+  "description": "分析源码 import 依赖、检测循环依赖、识别热点模块，把依赖图写入 .duoshe/CODEMAP.md",
   "enabledByDefault": false,
-  "postEnableHint": "Run `duoshe graph` to analyze import dependencies.",
+  "postEnableHint": "现在可以运行 `duoshe graph` 来分析代码依赖了。",
   "triggers": ["large codebase", "cyclic dependencies", "refactor", "architecture review"]
 }

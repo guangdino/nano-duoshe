@@ -8,6 +8,7 @@ import {
   renderDecisionsMd,
   renderModulesMd,
   renderProjectMd,
+  renderSetupMd,
   renderTodoMd,
   renderTroubleshootingMd,
 } from "./templates.js";
@@ -84,6 +85,7 @@ export function initVault(opts: {
     "TROUBLESHOOTING.md": writeMd(paths.troubleshooting, renderTroubleshootingMd(), { force }),
     "MODULES.md": writeMd(paths.modules, renderModulesMd({ scan: opts.scan }), { force }),
     "TODO.md": writeMd(paths.todo, renderTodoMd(), { force }),
+    "SETUP.md": writeMd(paths.setup, renderSetupMd({ projectName }), { force }),
   };
 
   return { paths, created, fileActions };

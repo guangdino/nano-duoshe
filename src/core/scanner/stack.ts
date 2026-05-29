@@ -130,6 +130,78 @@ function detectGo(root: string): Stack | null {
   return stack;
 }
 
+function detectTerraform(root: string): Stack | null {
+  try {
+    const rootTf = readdirSync(root).find((e) => e.endsWith(".tf"));
+    if (rootTf) {
+      return { language: "Terraform", manifestFile: rootTf, packageManager: "terraform" };
+    }
+    // Common IaC layout: terraform/, infra/, tf/ subdirs hold the .tf files.
+    for (const subdir of ["terraform", "infra", "tf"]) {
+      const subPath = join(root, subdir);
+      if (!existsSync(subPath)) continue;
+      const found = findFirstTfInTree(subPath, 3);
+      if (found) {
+        return {
+          language: "Terraform",
+          manifestFile: `${subdir}/${found}`,
+          packageManager: "terraform",
+        };
+      }
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function findFirstTfInTree(dir: string, maxDepth: number): string | null {
+  if (maxDepth < 0) return null;
+  let entries: string[];
+  try {
+    entries = readdirSync(dir);
+  } catch {
+    return null;
+  }
+  for (const name of entries) {
+    if (name.endsWith(".tf")) return name;
+  }
+  for (const name of entries) {
+    const sub = join(dir, name);
+    try {
+      if (!readdirSync(sub).length) continue;
+    } catch {
+      continue;
+    }
+    const found = findFirstTfInTree(sub, maxDepth - 1);
+    if (found) return `${name}/${found}`;
+  }
+  return null;
+}
+
+function detectAnsible(root: string): Stack | null {
+  const markers = ["ansible.cfg", "playbook.yml", "playbook.yaml", "site.yml", "site.yaml"];
+  for (const m of markers) {
+    if (existsSync(join(root, m))) {
+      return { language: "Ansible", manifestFile: m, packageManager: "ansible-galaxy" };
+    }
+  }
+  return null;
+}
+
+function detectDocker(root: string): Stack | null {
+  if (existsSync(join(root, "Dockerfile"))) {
+    return { language: "Docker", manifestFile: "Dockerfile" };
+  }
+  if (existsSync(join(root, "compose.yml")) || existsSync(join(root, "docker-compose.yml"))) {
+    return {
+      language: "Docker Compose",
+      manifestFile: existsSync(join(root, "compose.yml")) ? "compose.yml" : "docker-compose.yml",
+    };
+  }
+  return null;
+}
+
 function detectRust(root: string): Stack | null {
   const manifest = join(root, "Cargo.toml");
   if (!existsSync(manifest)) return null;
@@ -145,7 +217,16 @@ function detectRust(root: string): Stack | null {
 }
 
 export function detectStacks(root: string): Stack[] {
-  const detectors = [detectNpm, detectPython, detectDotNet, detectGo, detectRust];
+  const detectors = [
+    detectNpm,
+    detectPython,
+    detectDotNet,
+    detectGo,
+    detectRust,
+    detectTerraform,
+    detectAnsible,
+    detectDocker,
+  ];
   const stacks: Stack[] = [];
   for (const fn of detectors) {
     const s = fn(root);

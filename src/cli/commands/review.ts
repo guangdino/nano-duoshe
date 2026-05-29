@@ -7,6 +7,17 @@ import { vaultExists } from "../../core/vault/index.js";
 import { nudgeAfterPublish, nudgeAfterReject, nudgeAfterReviewEmpty } from "../assistant.js";
 import { log } from "../log.js";
 
+const STATUS_HUMAN_LABEL: Record<CandidateStatus, string> = {
+  pending: "待确认",
+  accepted: "已接受",
+  published: "已保存",
+  rejected: "已丢弃",
+};
+
+function humanStatusList(): string {
+  return CANDIDATE_STATUSES.map((s) => `${s}（${STATUS_HUMAN_LABEL[s]}）`).join(" | ");
+}
+
 function isStatus(s: string): s is CandidateStatus {
   return (CANDIDATE_STATUSES as readonly string[]).includes(s);
 }
@@ -54,7 +65,7 @@ async function runReview(opts: ReviewOptions): Promise<void> {
   const root = ensureVault();
 
   if (!isStatus(opts.status)) {
-    log.err(`状态 "${opts.status}" 无效。可选：${CANDIDATE_STATUSES.join(", ")}`);
+    log.err(`状态 "${opts.status}" 无效。可选：${humanStatusList()}`);
     process.exit(1);
   }
 
@@ -77,8 +88,17 @@ async function runReview(opts: ReviewOptions): Promise<void> {
   for (const c of list) printCandidate(c);
 
   if (opts.status === "pending") {
-    log.raw(`  保存：${kleur.cyan("duoshe save <id>")}   或者   ${kleur.cyan("duoshe publish <id>")}`);
-    log.raw(`  丢弃：${kleur.cyan("duoshe drop <id>")}   或者   ${kleur.cyan("duoshe reject <id>")}`);
+    const firstId = list[0]?.id;
+    if (firstId) {
+      log.raw(`  保存（这一条）：${kleur.cyan(`duoshe save ${firstId}`)}`);
+      log.raw(`  丢弃（这一条）：${kleur.cyan(`duoshe drop ${firstId}`)}`);
+      if (list.length > 1) {
+        log.raw(kleur.gray(`  其他记录把上面命令里的 id 换成对应的就行。`));
+      }
+    } else {
+      log.raw(`  保存：${kleur.cyan("duoshe save <id>")}`);
+      log.raw(`  丢弃：${kleur.cyan("duoshe drop <id>")}`);
+    }
     log.blank();
   }
 }
@@ -147,7 +167,7 @@ export function registerReviewCommand(program: Command): void {
     .description("查看待确认的记录，决定保存还是丢弃")
     .option(
       "-s, --status <status>",
-      `按状态筛选（${CANDIDATE_STATUSES.join("|")}）`,
+      `按状态筛选。可选：${humanStatusList()}`,
       "pending",
     )
     .action(async (opts: ReviewOptions) => {
@@ -175,7 +195,7 @@ export function registerReviewCommand(program: Command): void {
   program
     .command("reject <candidateId>")
     .aliases(["drop"])
-    .description("丢弃一条待确认记录（归档到 CANDIDATES/rejected.jsonl）")
+    .description("丢弃一条待确认记录（不删除原文，会归档保留）")
     .action(async (id: string) => {
       try {
         await runReject(id);

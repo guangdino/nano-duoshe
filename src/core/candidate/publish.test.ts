@@ -52,15 +52,15 @@ describe("publishToMarkdown", () => {
     expect(md).toContain("source: session=session_001,turns=3-4");
   });
 
-  it("removes '(no decisions recorded yet)' sentinel on first publish", () => {
+  it("removes the empty-decisions sentinel on first publish", () => {
     const before = readFileSync(join(dir, ".duoshe", "DECISIONS.md"), "utf8");
-    expect(before).toContain("_(no decisions recorded yet)_");
+    expect(before).toContain("_(暂无决策记录)_");
 
     const c = store.add({ type: "decision", content: "First one" });
     publishToMarkdown({ projectRoot: dir, candidate: store.markPublished(c.id) });
 
     const after = readFileSync(join(dir, ".duoshe", "DECISIONS.md"), "utf8");
-    expect(after).not.toContain("_(no decisions recorded yet)_");
+    expect(after).not.toContain("_(暂无决策记录)_");
   });
 
   it("is idempotent — publishing the same candidate twice does not duplicate", () => {
@@ -98,7 +98,7 @@ describe("publishToMarkdown", () => {
     publishToMarkdown({ projectRoot: dir, candidate: published });
 
     const md = readFileSync(join(dir, ".duoshe", "PROJECT.md"), "utf8");
-    expect(md).toContain("## Memorized facts");
+    expect(md).toContain("## 项目记忆");
     expect(md).toContain("Built for Windows-only deployment.");
   });
 
@@ -127,6 +127,6 @@ describe("publishToMarkdown", () => {
     const c = store.add({ type: "decision", content: "X", target: "NOT_REAL.md" });
     expect(() =>
       publishToMarkdown({ projectRoot: dir, candidate: store.markPublished(c.id) }),
-    ).toThrow(/does not exist/);
+    ).toThrow(/目标文件不存在/);
   });
 });

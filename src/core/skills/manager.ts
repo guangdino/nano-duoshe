@@ -108,7 +108,7 @@ export function enableSkill(projectRoot: string, skillName: string): string | un
     const code = (err as NodeJS.ErrnoException).code;
     if (code === "ENOENT") {
       throw new Error(
-        `skill "${skillName}" not in available skills. Run \`duoshe skill list\` to see options.`,
+        `找不到技能 "${skillName}"。运行 \`duoshe skill list\` 查看所有可用技能。`,
       );
     }
     throw err;

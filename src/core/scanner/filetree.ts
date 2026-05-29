@@ -43,6 +43,7 @@ const SOURCE_EXTS = new Set([
   ".c", ".cc", ".cpp", ".cxx", ".h", ".hpp",
   ".lua", ".dart", ".ex", ".exs",
   ".sql",
+  ".tf", ".tfvars",
 ]);
 
 const DIR_ROLE_HINTS: Record<string, string> = {
@@ -91,6 +92,13 @@ const DIR_ROLE_HINTS: Record<string, string> = {
   third_party: "third-party code",
   ".github": "GitHub workflows/config",
   ".claude": "Claude Code settings",
+  terraform: "infrastructure (Terraform)",
+  tf: "infrastructure (Terraform)",
+  infra: "infrastructure (Terraform)",
+  ansible: "infrastructure (Ansible)",
+  playbooks: "infrastructure (Ansible)",
+  roles: "Ansible roles",
+  docker: "container images",
 };
 
 const ENTRY_PATTERNS: { pattern: RegExp; kind: EntryPoint["kind"] }[] = [

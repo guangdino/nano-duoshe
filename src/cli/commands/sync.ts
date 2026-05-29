@@ -10,30 +10,30 @@ type SyncOptions = {
 async function runSync(opts: SyncOptions): Promise<void> {
   const root = process.cwd();
   if (!vaultExists(root)) {
-    log.err("No .duoshe/ found in this directory. Run `duoshe init` first.");
+    log.err("这个目录还没有初始化。请先运行 `duoshe init`。");
     process.exit(1);
   }
 
-  log.step("Syncing CLAUDE.md / AGENTS.md shell blocks");
+  log.step("同步 CLAUDE.md / AGENTS.md 里的 DuoShe 块");
   const existing = detectExistingShells(root);
   const anyExists = existing.some((e) => e.exists);
   const createIfMissing = opts.create === true || !anyExists;
 
   const results = syncShells(root, { createIfMissing });
   for (const r of results) {
-    if (r.status === "created") log.ok(`created ${r.file}`);
-    else if (r.status === "appended") log.ok(`appended DuoShe block to ${r.file}`);
-    else if (r.status === "updated") log.ok(`updated DuoShe block in ${r.file}`);
-    else if (r.status === "unchanged") log.info(`${r.file} block already current`);
-    else if (r.status === "skipped-no-existing") log.info(`${r.file} not present (pass --create to make a fresh shell)`);
+    if (r.status === "created") log.ok(`创建了 ${r.file}`);
+    else if (r.status === "appended") log.ok(`已在 ${r.file} 末尾追加 DuoShe 块`);
+    else if (r.status === "updated") log.ok(`更新了 ${r.file} 里的 DuoShe 块`);
+    else if (r.status === "unchanged") log.info(`${r.file} 的 DuoShe 块已经是最新`);
+    else if (r.status === "skipped-no-existing") log.info(`${r.file} 不存在（加 --create 强制创建）`);
   }
 }
 
 export function registerSyncCommand(program: Command): void {
   program
     .command("sync")
-    .description("sync the DuoShe block in CLAUDE.md / AGENTS.md (HTML-comment delimited, never clobbers user content)")
-    .option("--create", "also create CLAUDE.md / AGENTS.md if they don't exist")
+    .description("同步 CLAUDE.md / AGENTS.md 里的 DuoShe 块（不会覆盖你已有的内容）")
+    .option("--create", "如果 CLAUDE.md / AGENTS.md 不存在就一并创建")
     .action(async (opts: SyncOptions) => {
       try {
         await runSync(opts);

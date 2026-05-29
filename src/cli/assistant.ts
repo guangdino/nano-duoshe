@@ -54,21 +54,8 @@ function getMode(root: string): AssistantMode {
 
 // ─── Nudge library ────────────────────────────────────────────────────────────
 
-// Called after `duoshe init` completes
-export function nudgeAfterInit(root: string): void {
-  if (!vaultExists(root)) return;
-  const mode = getMode(root);
-
-  // Always suggest guide if it hasn't been run yet (this is actionable)
-  const nudge: Nudge = {
-    level: "normal",
-    lines: [
-      "还有一步能让 AI 真正认识这个项目：",
-      `运行 ${kleur.cyan("duoshe guide")} 回答几个小问题，只需要 3 分钟。`,
-    ],
-  };
-  if (modeAllows(mode, nudge.level)) printNudge(nudge);
-}
+// (nudgeAfterInit was removed — the main init output already strongly steers
+// the user to `duoshe guide`, so a follow-up nudge was just duplicate noise.)
 
 // Called after `duoshe guide` completes
 export function nudgeAfterGuide(root: string): void {

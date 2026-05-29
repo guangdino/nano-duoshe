@@ -4,9 +4,14 @@ import type { Candidate } from "../types.js";
 import { vaultPathsFor } from "../vault/paths.js";
 
 const EMPTY_SENTINELS = [
+  // English (kept for backward compatibility with vaults created before localization).
   /_\(no decisions recorded yet\)_/i,
   /_\(no troubleshooting entries yet\)_/i,
   /_\(no top-level directories detected\.\)_/i,
+  // Chinese (new template default).
+  /_\(暂无决策记录\)_/,
+  /_\(暂无踩坑记录\)_/,
+  /_未识别出顶层目录。_/,
 ];
 
 function makeFooter(c: Candidate): string {
@@ -52,9 +57,9 @@ function stripSentinels(text: string): string {
 }
 
 function ensureProjectMemorizedSection(text: string): string {
-  if (text.includes("## Memorized facts")) return text;
+  if (text.includes("## 项目记忆") || text.includes("## Memorized facts")) return text;
   const sep = text.endsWith("\n") ? "" : "\n";
-  return `${text}${sep}\n## Memorized facts\n\n_Published via \`duoshe publish\` — see footer for traceback._\n`;
+  return `${text}${sep}\n## 项目记忆\n\n_由 \`duoshe save\` 写入 —— 每条都带追溯信息（看 footer）。_\n`;
 }
 
 export type PublishResult = {
@@ -74,7 +79,7 @@ export function publishToMarkdown(opts: {
 
   if (!existsSync(targetPath)) {
     throw new Error(
-      `target file does not exist: ${targetPath}. Run \`duoshe init\` first.`,
+      `目标文件不存在：${targetPath}。请先运行 \`duoshe init\`。`,
     );
   }
 

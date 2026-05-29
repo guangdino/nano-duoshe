@@ -12,6 +12,7 @@ export type VaultPaths = {
   troubleshooting: string;
   modules: string;
   todo: string;
+  setup: string;
   sessions: string;
   candidates: string;
   candidatesPending: string;
@@ -36,6 +37,7 @@ export function vaultPathsFor(projectRoot: string): VaultPaths {
     troubleshooting: join(vault, "TROUBLESHOOTING.md"),
     modules: join(vault, "MODULES.md"),
     todo: join(vault, "TODO.md"),
+    setup: join(vault, "SETUP.md"),
     sessions: join(vault, "SESSIONS"),
     candidates: join(vault, "CANDIDATES"),
     candidatesPending: join(vault, "CANDIDATES", "pending.jsonl"),

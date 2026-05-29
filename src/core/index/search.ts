@@ -32,7 +32,10 @@ function sanitizeQuery(raw: string): string {
 }
 
 function buildSnippet(content: string, rawQuery: string, max = 160): string {
-  const oneLine = content.replace(/\s+/g, " ").trim();
+  // Strip DuoShe metadata footers (`<!-- duoshe: cand_xxx | ... -->`)
+  // and any other HTML comments before building the user-facing snippet.
+  const cleaned = content.replace(/<!--[\s\S]*?-->/g, " ");
+  const oneLine = cleaned.replace(/\s+/g, " ").trim();
   if (oneLine.length === 0) return "";
 
   const needle = rawQuery.trim();

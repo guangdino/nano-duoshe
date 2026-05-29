@@ -3,6 +3,18 @@ import type { Command } from "commander";
 import kleur from "kleur";
 import { CandidateStore } from "../../core/candidate/index.js";
 import { CANDIDATE_TYPES, type CandidateType } from "../../core/types.js";
+
+const TYPE_HUMAN_LABEL: Record<CandidateType, string> = {
+  decision: "决策",
+  troubleshooting: "踩坑",
+  module_boundary: "模块规则",
+  project_fact: "项目信息",
+  user_preference: "习惯偏好",
+};
+
+function humanTypeList(): string {
+  return CANDIDATE_TYPES.map((t) => `${t}（${TYPE_HUMAN_LABEL[t]}）`).join(" | ");
+}
 import { vaultExists } from "../../core/vault/index.js";
 import { nudgeAfterRemember } from "../assistant.js";
 import { log } from "../log.js";
@@ -60,7 +72,7 @@ async function runRemember(content: string, opts: RememberOptions): Promise<void
   let resolvedType: CandidateType;
   if (opts.type !== undefined) {
     if (!isCandidateType(opts.type)) {
-      log.err(`类型 "${opts.type}" 无效。可选值：${CANDIDATE_TYPES.join(", ")}`);
+      log.err(`类型 "${opts.type}" 无效。可选：${humanTypeList()}`);
       process.exit(1);
     }
     resolvedType = opts.type;
@@ -96,7 +108,7 @@ export function registerRememberCommand(program: Command): void {
     .description("记录一条知识（决策、踩坑、模块规则等），暂存为待确认状态")
     .option(
       "-t, --type <type>",
-      `指定类型（${CANDIDATE_TYPES.join("|")}），不指定则交互选择`,
+      `指定类型，不指定则交互选择。可选：${humanTypeList()}`,
     )
     .option("--title <title>", "自定义标题（默认取内容第一行）")
     .option("--target <file>", "覆盖目标文件（DECISIONS.md | TROUBLESHOOTING.md | MODULES.md | PROJECT.md）")

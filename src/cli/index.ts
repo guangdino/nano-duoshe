@@ -19,11 +19,26 @@ const program = new Command();
 
 program
   .name("duoshe")
-  .description(
-    "DuoShe — local-first project memory layer for AI coding agents (Claude Code / Codex / Cursor)",
-  )
-  .version(getVersion(), "-v, --version", "print version")
-  .helpOption("-h, --help", "show help");
+  .description("DuoShe（夺舍）— 本地优先的项目记忆层，让 Claude Code / Codex / Cursor 等 AI 工具真正认识你的项目")
+  .version(getVersion(), "-v, --version", "显示版本号")
+  .helpOption("-h, --help", "显示帮助");
+
+// Default action: when user just runs `duoshe` with no subcommand,
+// show a warm welcome instead of commander's default error.
+program.action(() => {
+  const here = process.cwd();
+  process.stdout.write(`\n${kleur.bold("  DuoShe（夺舍） — 让 AI 真正认识你的项目")}\n\n`);
+  process.stdout.write(`  ${kleur.gray("项目记忆层，本地优先。给 Claude Code / Codex / Cursor 用。")}\n\n`);
+  process.stdout.write(`  ${kleur.bold("第一次用？")}  在项目目录里运行：\n`);
+  process.stdout.write(`      ${kleur.cyan("duoshe init")}     ${kleur.gray(`# 在 ${here} 初始化记忆库`)}\n`);
+  process.stdout.write(`      ${kleur.cyan("duoshe guide")}    ${kleur.gray("# 回答 7 个小问题，让 AI 认识这个项目")}\n\n`);
+  process.stdout.write(`  ${kleur.bold("常用命令：")}\n`);
+  process.stdout.write(`      ${kleur.cyan('duoshe remember "..."')}    记一条重要的事\n`);
+  process.stdout.write(`      ${kleur.cyan("duoshe review")}             看待确认的记录\n`);
+  process.stdout.write(`      ${kleur.cyan('duoshe search "..."')}       在项目记忆里搜索\n`);
+  process.stdout.write(`      ${kleur.cyan("duoshe upgrade")}            检查新版本\n\n`);
+  process.stdout.write(`  ${kleur.gray("完整命令列表：")}${kleur.cyan("duoshe --help")}\n\n`);
+});
 
 registerInitCommand(program);
 registerGuideCommand(program);

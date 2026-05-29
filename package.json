@@ -30,7 +30,6 @@
   },
   "files": [
     "dist",
-    "templates",
     "README.md",
     "README.zh-CN.md",
     "LICENSE"

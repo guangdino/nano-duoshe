@@ -103,7 +103,7 @@ export function registerSearchCommand(program: Command): void {
     .command("search <query>")
     .description("在项目记忆里搜索（PROJECT / DECISIONS / TROUBLESHOOTING 等）")
     .option("--limit <n>", "最多返回几条结果", "8")
-    .option("--type <type>", "按类型筛选：project|decision|troubleshooting|module|session_summary")
+    .option("--type <type>", "按类型筛选：project（项目）| decision（决策）| troubleshooting（踩坑）| module（模块）| session_summary（会话摘要）")
     .option("--no-auto-index", "不自动建索引")
     .action(async (query: string, opts: SearchOpts) => {
       try {
