@@ -4,6 +4,7 @@ import { CandidateStore, publishToMarkdown } from "../../core/candidate/index.js
 import { reindex } from "../../core/index/index.js";
 import { CANDIDATE_STATUSES, type Candidate, type CandidateStatus } from "../../core/types.js";
 import { vaultExists } from "../../core/vault/index.js";
+import { nudgeAfterPublish, nudgeAfterReject, nudgeAfterReviewEmpty } from "../assistant.js";
 import { log } from "../log.js";
 
 function isStatus(s: string): s is CandidateStatus {
@@ -13,14 +14,14 @@ function isStatus(s: string): s is CandidateStatus {
 function ensureVault(): string {
   const root = process.cwd();
   if (!vaultExists(root)) {
-    log.err("No .duoshe/ found in this directory. Run `duoshe init` first.");
+    log.err("这个目录还没有初始化。请先运行 `duoshe init`。");
     process.exit(1);
   }
   return root;
 }
 
 function shortDate(iso: string): string {
-  return iso.slice(0, 19).replace("T", " ");
+  return iso.slice(0, 10);
 }
 
 function previewContent(content: string, max = 120): string {
@@ -29,16 +30,18 @@ function previewContent(content: string, max = 120): string {
   return `${oneLine.slice(0, max - 1)}…`;
 }
 
+const TYPE_LABEL: Record<string, string> = {
+  decision: "决策",
+  troubleshooting: "踩坑",
+  module_boundary: "模块规则",
+  project_fact: "项目信息",
+  user_preference: "习惯偏好",
+};
+
 function printCandidate(c: Candidate): void {
-  const statusColor: Record<CandidateStatus, (s: string) => string> = {
-    pending: kleur.yellow,
-    published: kleur.green,
-    accepted: kleur.green,
-    rejected: kleur.gray,
-  };
-  const tag = statusColor[c.status](`[${c.status}]`);
-  log.raw(`${kleur.cyan(c.id)}  ${tag}  ${kleur.bold(`(${c.type})`)}  ${c.title}`);
-  log.raw(`  ${kleur.gray(`→ ${c.target}  ·  ${shortDate(c.createdAt)}`)}`);
+  const label = TYPE_LABEL[c.type] ?? c.type;
+  log.raw(`${kleur.cyan(c.id)}  ${kleur.yellow(`[${label}]`)}  ${kleur.bold(c.title)}`);
+  log.raw(`  ${kleur.gray(`${shortDate(c.createdAt)}  →  .duoshe/${c.target}`)}`);
   log.raw(`  ${kleur.gray(previewContent(c.content))}`);
   log.blank();
 }
@@ -51,7 +54,7 @@ async function runReview(opts: ReviewOptions): Promise<void> {
   const root = ensureVault();
 
   if (!isStatus(opts.status)) {
-    log.err(`Invalid --status "${opts.status}". Valid: ${CANDIDATE_STATUSES.join(", ")}`);
+    log.err(`状态 "${opts.status}" 无效。可选：${CANDIDATE_STATUSES.join(", ")}`);
     process.exit(1);
   }
 
@@ -59,21 +62,24 @@ async function runReview(opts: ReviewOptions): Promise<void> {
   const list = store.listByStatus(opts.status);
 
   if (list.length === 0) {
-    log.info(`No ${opts.status} candidates.`);
     if (opts.status === "pending") {
-      log.blank();
-      log.raw(`Tip: add one with ${kleur.cyan('duoshe remember "..." --type decision')}`);
+      log.info("没有待确认的记录。");
+      nudgeAfterReviewEmpty(root);
+    } else {
+      log.info(`没有状态为"${opts.status}"的记录。`);
     }
     return;
   }
 
-  log.step(`${list.length} ${opts.status} candidate(s)`);
+  log.blank();
+  log.raw(kleur.bold(`  有 ${list.length} 条记录等你确认：`));
   log.blank();
   for (const c of list) printCandidate(c);
 
   if (opts.status === "pending") {
-    log.raw(`Publish:   ${kleur.cyan("duoshe publish <id>")}`);
-    log.raw(`Reject:    ${kleur.cyan("duoshe reject <id>")}`);
+    log.raw(`  保存：${kleur.cyan("duoshe save <id>")}   或者   ${kleur.cyan("duoshe publish <id>")}`);
+    log.raw(`  丢弃：${kleur.cyan("duoshe drop <id>")}   或者   ${kleur.cyan("duoshe reject <id>")}`);
+    log.blank();
   }
 }
 
@@ -83,35 +89,31 @@ async function runPublish(id: string): Promise<void> {
 
   const c = store.findById(id);
   if (!c) {
-    log.err(`Candidate not found: ${id}`);
-    log.info(`Run \`duoshe review\` to see pending candidates.`);
+    log.err(`找不到记录 ${id}。运行 \`duoshe review\` 查看待确认的记录。`);
     process.exit(1);
   }
 
   if (c.status === "rejected") {
-    log.err(`Candidate ${id} was rejected on ${c.rejectedAt}; cannot publish.`);
+    log.err(`这条记录已被丢弃（${c.rejectedAt}），无法保存。`);
     process.exit(1);
   }
-
-  log.step(`Publishing ${kleur.cyan(id)} → .duoshe/${c.target}`);
 
   const updated = store.markPublished(id);
   const result = publishToMarkdown({ projectRoot: root, candidate: updated });
 
-  if (result.action === "already-published") {
-    log.info("section with this id already exists in the target file — skipped append");
+  if (result.action !== "already-published") {
+    log.ok(`已保存到 .duoshe/${c.target}`);
   } else {
-    log.ok(`appended ${result.bytesWritten} byte(s) to ${result.targetPath}`);
+    log.info(`这条记录已经保存过了，跳过。`);
   }
-  log.ok(`status: pending → ${kleur.green("published")}`);
 
   try {
-    const r = reindex(root);
-    log.info(`reindexed ${r.sectionsIndexed} section(s) (${r.durationMs}ms)`);
-  } catch (err) {
-    log.warn(`auto-reindex failed: ${err instanceof Error ? err.message : String(err)}`);
-    log.info("run `duoshe reindex` manually to refresh search index");
+    reindex(root);
+  } catch {
+    // reindex failure is non-fatal; search may be stale until next reindex
   }
+
+  nudgeAfterPublish(root);
 }
 
 async function runReject(id: string): Promise<void> {
@@ -120,30 +122,32 @@ async function runReject(id: string): Promise<void> {
 
   const c = store.findById(id);
   if (!c) {
-    log.err(`Candidate not found: ${id}`);
+    log.err(`找不到记录 ${id}。`);
     process.exit(1);
   }
 
   if (c.status === "published") {
-    log.err(`Candidate ${id} was already published; cannot reject.`);
+    log.err(`这条记录已经保存过了，无法丢弃。`);
     process.exit(1);
   }
   if (c.status === "rejected") {
-    log.info(`Candidate ${id} was already rejected on ${c.rejectedAt}.`);
+    log.info(`这条记录已经丢弃过了（${c.rejectedAt}）。`);
     return;
   }
 
   store.markRejected(id);
-  log.ok(`rejected ${kleur.cyan(id)} (archived to CANDIDATES/rejected.jsonl)`);
+  log.ok(`已丢弃。`);
+
+  nudgeAfterReject(root);
 }
 
 export function registerReviewCommand(program: Command): void {
   program
     .command("review")
-    .description("list pending candidate memories awaiting your decision")
+    .description("查看待确认的记录，决定保存还是丢弃")
     .option(
       "-s, --status <status>",
-      `filter by status (${CANDIDATE_STATUSES.join("|")})`,
+      `按状态筛选（${CANDIDATE_STATUSES.join("|")}）`,
       "pending",
     )
     .action(async (opts: ReviewOptions) => {
@@ -157,7 +161,8 @@ export function registerReviewCommand(program: Command): void {
 
   program
     .command("publish <candidateId>")
-    .description("publish a candidate memory to its target Markdown file (e.g. DECISIONS.md), with a traceability footer")
+    .aliases(["save"])
+    .description("把一条待确认记录正式保存到项目记忆（如 DECISIONS.md）")
     .action(async (id: string) => {
       try {
         await runPublish(id);
@@ -169,7 +174,8 @@ export function registerReviewCommand(program: Command): void {
 
   program
     .command("reject <candidateId>")
-    .description("reject a candidate memory; it will be archived in CANDIDATES/rejected.jsonl")
+    .aliases(["drop"])
+    .description("丢弃一条待确认记录（归档到 CANDIDATES/rejected.jsonl）")
     .action(async (id: string) => {
       try {
         await runReject(id);

@@ -8,6 +8,7 @@ import {
   uninstallShells,
 } from "../../adapters/claude-md.js";
 import { fullScan } from "../../core/scanner/index.js";
+import { installBundledSkills } from "../../core/skills/manager.js";
 import { initVault, vaultExists, vaultPathsFor } from "../../core/vault/index.js";
 import { runGuide } from "./guide.js";
 import { log } from "../log.js";
@@ -19,6 +20,12 @@ type InitOptions = {
   guided?: boolean;
   shells?: "auto" | "always" | "never";
 };
+
+function shouldCreateShells(shells: InitOptions["shells"], anyExists: boolean): boolean {
+  if (shells === "always") return true;
+  if (shells === "never") return false;
+  return !anyExists;
+}
 
 async function runInit(opts: InitOptions): Promise<void> {
   const root = process.cwd();
@@ -49,11 +56,19 @@ async function runInit(opts: InitOptions): Promise<void> {
     else if (action === "skipped-confirmed") log.info(`preserved user-confirmed .duoshe/${name}`);
   }
 
+  log.step("Installing bundled skills");
+  const installedSkills = installBundledSkills(root);
+  if (installedSkills.length > 0) {
+    log.ok(`installed ${installedSkills.length} skill(s) to .duoshe/SKILLS/available/: ${installedSkills.join(", ")}`);
+    log.info(`Skills are disabled by default — run \`duoshe skill enable <name>\` to activate`);
+  } else {
+    log.info("skills already installed (skipped)");
+  }
+
   log.step("Syncing CLAUDE.md / AGENTS.md shell blocks");
   const existing = detectExistingShells(root);
   const anyExists = existing.some((e) => e.exists);
-  const createIfMissing =
-    opts.shells === "always" ? true : opts.shells === "never" ? false : !anyExists;
+  const createIfMissing = shouldCreateShells(opts.shells, anyExists);
   if (opts.shells === undefined && anyExists) {
     log.info("found existing CLAUDE.md/AGENTS.md — appending DuoShe block only (will not create the other)");
   } else if (createIfMissing) {
@@ -80,16 +95,14 @@ async function runInit(opts: InitOptions): Promise<void> {
 
   const elapsed = ((Date.now() - start) / 1000).toFixed(1);
   log.blank();
-  log.raw(kleur.green().bold("DuoShe is ready."));
-  log.raw(`  Vault:  ${kleur.gray(vaultPathsFor(root).vault)}`);
-  log.raw(`  Time:   ${elapsed}s`);
+  log.raw(kleur.green().bold("  准备好了。"));
+  log.raw(kleur.gray(`  用时 ${elapsed}s`));
   log.blank();
-  log.raw(kleur.bold("Next steps:"));
-  log.raw(`  1. Review ${kleur.cyan(".duoshe/PROJECT.md")} (about 2 minutes)`);
-  log.raw(`  2. Run: ${kleur.cyan("duoshe guide")} to answer a few setup questions`);
-  log.raw(`  3. Try: ${kleur.cyan("duoshe remember \"don't auto-format generated SQL\" --type decision")}`);
-  log.raw(`  4. Add MCP to Claude Code (.mcp.json):`);
-  log.raw(`     ${kleur.gray('{ "mcpServers": { "duoshe": { "command": "npx", "args": ["-y", "duoshe", "mcp"] } } }')}`);
+  log.raw(kleur.bold("  现在做一件事就够了："));
+  log.raw(`    运行 ${kleur.cyan("duoshe guide")}，回答 7 个小问题，让 AI 真正认识这个项目。`);
+  log.blank();
+  log.raw(kleur.gray("  之后想到什么，随时用 `duoshe remember \"...\"` 记下来。"));
+  log.raw(kleur.gray("  连接到 AI 工具的方法见 .duoshe/SETUP.md。"));
   log.blank();
 }
 

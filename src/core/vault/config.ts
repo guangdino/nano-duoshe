@@ -24,6 +24,8 @@ export function defaultConfig(opts: {
     ],
     maxContextChars: 12000,
     allowAgentPublish: false,
+    enabledSkills: [],
+    assistantMode: "normal",
     createdAt: new Date().toISOString(),
   };
 }

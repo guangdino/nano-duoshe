@@ -38,6 +38,12 @@ export type GitInsights = {
   remoteUrl?: string;
 };
 
+// Controls how proactively the assistant offers suggestions after each command.
+// "quiet"  = only speaks when something is genuinely wrong or actionable
+// "normal" = default: speaks when there is a clear next step worth surfacing
+// "chatty" = always adds a short follow-up, even if just encouragement
+export type AssistantMode = "quiet" | "normal" | "chatty";
+
 export type VaultConfig = {
   projectId: string;
   projectName: string;
@@ -47,6 +53,9 @@ export type VaultConfig = {
   contextFiles: string[];
   maxContextChars: number;
   allowAgentPublish?: boolean;
+  enabledSkills: string[];
+  assistantMode: AssistantMode;
+  guideCompletedAt?: string;
   createdAt: string;
 };
 
@@ -90,4 +99,18 @@ export type CandidateInput = {
   sourceTurnStart?: number;
   sourceTurnEnd?: number;
   source?: string;
+};
+
+export type SkillMeta = {
+  name: string;
+  version: string;
+  description: string;
+  enabledByDefault: boolean;
+  triggers?: string[];
+};
+
+export type SkillDefinition = {
+  meta: SkillMeta;
+  run: (projectRoot: string, opts?: Record<string, unknown>) => Promise<void>;
+  shouldAutoEnable?: (projectRoot: string) => Promise<boolean>;
 };

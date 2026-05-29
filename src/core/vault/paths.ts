@@ -18,11 +18,14 @@ export type VaultPaths = {
   candidatesAccepted: string;
   candidatesRejected: string;
   skills: string;
+  skillsAvailable: string;
+  skillsEnabled: string;
   indexDb: string;
 };
 
 export function vaultPathsFor(projectRoot: string): VaultPaths {
   const vault = join(projectRoot, VAULT_DIRNAME);
+  const skills = join(vault, "SKILLS");
   return {
     root: projectRoot,
     vault,
@@ -38,7 +41,9 @@ export function vaultPathsFor(projectRoot: string): VaultPaths {
     candidatesPending: join(vault, "CANDIDATES", "pending.jsonl"),
     candidatesAccepted: join(vault, "CANDIDATES", "accepted.jsonl"),
     candidatesRejected: join(vault, "CANDIDATES", "rejected.jsonl"),
-    skills: join(vault, "SKILLS"),
+    skills,
+    skillsAvailable: join(skills, "available"),
+    skillsEnabled: join(skills, "enabled"),
     indexDb: join(vault, "index.db"),
   };
 }

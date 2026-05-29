@@ -2,7 +2,9 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { createInterface } from "node:readline/promises";
 import type { Command } from "commander";
 import kleur from "kleur";
+import { readConfig, writeConfig } from "../../core/vault/config.js";
 import { vaultExists, vaultPathsFor } from "../../core/vault/index.js";
+import { nudgeAfterGuide } from "../assistant.js";
 import { log } from "../log.js";
 
 const BEGIN_GUIDE = "<!-- BEGIN DUOSHE-GUIDE -->";
@@ -104,24 +106,51 @@ function renderTodoGuide(a: GuideAnswers): string {
   return ["### Next tasks", "", bulletList(a.nextTasks)].join("\n");
 }
 
+function hint(text: string): void {
+  log.raw(kleur.gray(`     例：${text}`));
+}
+
 async function promptAnswers(): Promise<GuideAnswers> {
   const rl = createInterface({ input: process.stdin, output: process.stdout });
   try {
-    log.raw(kleur.bold("DuoShe guided setup"));
-    log.raw("Answer briefly. Use semicolons for multiple items. Press Enter to skip.");
+    log.blank();
+    log.raw(kleur.bold("  几个小问题，帮 AI 认识这个项目"));
+    log.raw(kleur.gray("  多个答案用分号隔开，不知道的直接回车跳过。"));
     log.blank();
 
-    const overview = (await rl.question("What is this project, in one sentence? ")).trim();
-    const users = (await rl.question("Who is it for? ")).trim();
-    const inspectFirst = splitList(
-      await rl.question("Which directories/files should an AI inspect first? "),
-    );
-    const conventions = splitList(
-      await rl.question("Project conventions or style rules to remember? "),
-    );
-    const gotchas = splitList(await rl.question("Anything AI must not break or should be careful with? "));
-    const decisions = splitList(await rl.question("Important decisions already made? "));
-    const nextTasks = splitList(await rl.question("Current next tasks? "));
+    log.raw(kleur.bold("  1. 这个项目是做什么的？"));
+    hint("给中小电商团队用的库存管理后台");
+    const overview = (await rl.question("  > ")).trim();
+
+    log.blank();
+    log.raw(kleur.bold("  2. 谁在用它？"));
+    hint("仓库管理员、运营人员");
+    const users = (await rl.question("  > ")).trim();
+
+    log.blank();
+    log.raw(kleur.bold("  3. 最重要的几个文件或文件夹是哪些？"));
+    hint("src/services/order.ts; src/routes/");
+    const inspectFirst = splitList(await rl.question("  > "));
+
+    log.blank();
+    log.raw(kleur.bold("  4. 有什么规矩 AI 必须记住？"));
+    hint("所有数据库操作走 service 层，不能在 route 里直接查；错误码统一在 errors/codes.ts");
+    const conventions = splitList(await rl.question("  > "));
+
+    log.blank();
+    log.raw(kleur.bold("  5. 有什么地方绝对不能乱动？"));
+    hint("发货状态机（shipping.ts）；库存扣减的分布式锁逻辑");
+    const gotchas = splitList(await rl.question("  > "));
+
+    log.blank();
+    log.raw(kleur.bold("  6. 已经拍板不用的东西？"));
+    hint("不用 ORM，直接写 SQL；不引入 Redux，用 React Context 就够");
+    const decisions = splitList(await rl.question("  > "));
+
+    log.blank();
+    log.raw(kleur.bold("  7. 现在最紧急要做的事？"));
+    hint("修复退款流程的并发 bug；加库存预警通知");
+    const nextTasks = splitList(await rl.question("  > "));
 
     return { overview, users, inspectFirst, conventions, gotchas, decisions, nextTasks };
   } finally {
@@ -131,18 +160,19 @@ async function promptAnswers(): Promise<GuideAnswers> {
 
 export async function runGuide(root = process.cwd()): Promise<void> {
   if (!vaultExists(root)) {
-    log.err("No .duoshe/ found in this directory. Run `duoshe init` first.");
+    log.err("这个目录还没有初始化。请先运行 `duoshe init`。");
     process.exit(1);
   }
 
   if (!process.stdin.isTTY || !process.stdout.isTTY) {
-    log.warn("Guided setup needs an interactive terminal. Run `duoshe guide` in a TTY.");
+    log.warn("问答模式需要在终端中运行。请直接运行 `duoshe guide`。");
     return;
   }
 
   const answers = await promptAnswers();
   if (!hasUsefulAnswer(answers)) {
-    log.info("No guided notes added.");
+    log.blank();
+    log.info("没有填写任何内容，跳过保存。");
     return;
   }
 
@@ -152,14 +182,23 @@ export async function runGuide(root = process.cwd()): Promise<void> {
   upsertGuideSection(paths.decisions, "Guided decisions", renderDecisionGuide(answers));
   upsertGuideSection(paths.todo, "Guided next steps", renderTodoGuide(answers));
 
+  // Mark guide as completed so the assistant knows not to nag about it
+  const cfg = readConfig(paths.config);
+  if (cfg) {
+    cfg.guideCompletedAt = new Date().toISOString();
+    writeConfig(paths.config, cfg);
+  }
+
   log.blank();
-  log.ok("updated guided sections in .duoshe/PROJECT.md, CODEMAP.md, DECISIONS.md, and TODO.md");
+  log.ok("已保存到项目记忆。AI 下次进来就能看到这些内容了。");
+
+  nudgeAfterGuide(root);
 }
 
 export function registerGuideCommand(program: Command): void {
   program
     .command("guide")
-    .description("interactive setup that asks a few questions and writes guided project memory")
+    .description("回答几个问题，帮 AI 认识这个项目（3 分钟）")
     .action(async () => {
       try {
         await runGuide();

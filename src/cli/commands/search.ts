@@ -3,6 +3,7 @@ import type { Command } from "commander";
 import kleur from "kleur";
 import { reindex, search } from "../../core/index/index.js";
 import { vaultExists, vaultPathsFor } from "../../core/vault/index.js";
+import { nudgeAfterSearchEmpty } from "../assistant.js";
 import { log } from "../log.js";
 
 type SearchOpts = {
@@ -13,6 +14,14 @@ type SearchOpts = {
 
 type ReindexOpts = {
   quiet?: boolean;
+};
+
+const TYPE_LABEL: Record<string, string> = {
+  decision: "决策",
+  troubleshooting: "踩坑",
+  module: "模块规则",
+  project: "项目信息",
+  session_summary: "会话摘要",
 };
 
 function colorByType(type: string): (s: string) => string {
@@ -39,42 +48,37 @@ function highlight(snippet: string): string {
 async function runSearch(query: string, opts: SearchOpts): Promise<void> {
   const root = process.cwd();
   if (!vaultExists(root)) {
-    log.err("No .duoshe/ found in this directory. Run `duoshe init` first.");
+    log.err("这个目录还没有初始化。请先运行 `duoshe init`。");
     process.exit(1);
   }
 
   const paths = vaultPathsFor(root);
   if (!existsSync(paths.indexDb) && !opts.noAutoIndex) {
-    log.info("index not built yet — building now...");
-    const r = reindex(root);
-    log.ok(`indexed ${r.sectionsIndexed} section(s) in ${r.filesIndexed} file(s) (${r.durationMs}ms)`);
-    log.blank();
+    reindex(root);
   }
 
   const limit = Number.parseInt(opts.limit, 10);
   if (!Number.isFinite(limit) || limit < 1) {
-    log.err(`Invalid --limit "${opts.limit}"`);
+    log.err(`--limit "${opts.limit}" 不是有效的数字`);
     process.exit(1);
   }
 
-  const t0 = Date.now();
   const searchOpts: { limit: number; type?: string } = { limit };
   if (opts.type) searchOpts.type = opts.type;
   const hits = search(root, query, searchOpts);
-  const ms = Date.now() - t0;
 
   if (hits.length === 0) {
-    log.info(`No matches for ${kleur.bold(`"${query}"`)} (${ms}ms)`);
-    log.info("If you just published something, try `duoshe reindex` first.");
+    log.info(`没有找到"${query}"相关的内容。`);
+    nudgeAfterSearchEmpty(root, query);
     return;
   }
 
-  log.step(`${hits.length} hit(s) for ${kleur.bold(`"${query}"`)} (${ms}ms)`);
   log.blank();
   for (const h of hits) {
-    const typeTag = colorByType(h.type)(`[${h.type}]`);
+    const label = TYPE_LABEL[h.type] ?? h.type;
+    const typeTag = colorByType(h.type)(`[${label}]`);
     log.raw(`${typeTag} ${kleur.bold(h.title)}`);
-    log.raw(`  ${kleur.gray(`.duoshe/${h.path}`)}${h.candidateId ? kleur.gray(` · ${h.candidateId}`) : ""}`);
+    log.raw(`  ${kleur.gray(`.duoshe/${h.path}`)}`);
     log.raw(`  ${highlight(h.snippet)}`);
     log.blank();
   }
@@ -83,24 +87,24 @@ async function runSearch(query: string, opts: SearchOpts): Promise<void> {
 async function runReindex(opts: ReindexOpts): Promise<void> {
   const root = process.cwd();
   if (!vaultExists(root)) {
-    log.err("No .duoshe/ found in this directory. Run `duoshe init` first.");
+    log.err("这个目录还没有初始化。请先运行 `duoshe init`。");
     process.exit(1);
   }
 
-  if (!opts.quiet) log.step("Rebuilding SQLite FTS5 index");
+  if (!opts.quiet) log.step("重建搜索索引");
   const r = reindex(root);
   if (!opts.quiet) {
-    log.ok(`indexed ${r.sectionsIndexed} section(s) across ${r.filesIndexed} file(s) in ${r.durationMs}ms`);
+    log.ok(`已索引 ${r.sectionsIndexed} 个条目（${r.filesIndexed} 个文件，${r.durationMs}ms）`);
   }
 }
 
 export function registerSearchCommand(program: Command): void {
   program
     .command("search <query>")
-    .description("search long-term memory (PROJECT/CODEMAP/DECISIONS/TROUBLESHOOTING/MODULES/TODO) via SQLite FTS5")
-    .option("--limit <n>", "max results", "8")
-    .option("--type <type>", "filter by type: project|decision|troubleshooting|module|session_summary")
-    .option("--no-auto-index", "do not build index automatically if missing")
+    .description("在项目记忆里搜索（PROJECT / DECISIONS / TROUBLESHOOTING 等）")
+    .option("--limit <n>", "最多返回几条结果", "8")
+    .option("--type <type>", "按类型筛选：project|decision|troubleshooting|module|session_summary")
+    .option("--no-auto-index", "不自动建索引")
     .action(async (query: string, opts: SearchOpts) => {
       try {
         await runSearch(query, opts);
@@ -112,8 +116,8 @@ export function registerSearchCommand(program: Command): void {
 
   program
     .command("reindex")
-    .description("rebuild SQLite FTS5 index from Markdown files")
-    .option("-q, --quiet", "suppress output (useful when chained from other commands)")
+    .description("重建搜索索引（刚发布了新记录后运行）")
+    .option("-q, --quiet", "静默模式")
     .action(async (opts: ReindexOpts) => {
       try {
         await runReindex(opts);
