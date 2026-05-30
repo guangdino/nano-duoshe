@@ -371,7 +371,7 @@ duoshe upgrade          # 检查 duoshe 自己有没有新版本
 | \`TODO.md\` | 当前在做、接下来要做的事 | ✅ 应该 |
 | \`SETUP.md\` | 这份说明，给新加入的人看 | ✅ 应该 |
 | \`SKILLS/\` | 已启用的技能 | ✅ 应该 |
-| \`config.json\` | 本地配置（assistantMode 等） | ❌ 个人偏好，不要 |
+| \`config.json\` | 本地配置（已启用的 skill 等） | ❌ 个人偏好，不要 |
 | \`CANDIDATES/\` | 还没确认的临时记录 | ❌ 个人草稿，不要 |
 | \`SESSIONS/\` | 私人会话归档 | ❌ 私密，不要 |
 | \`index.db\` | 本地搜索索引（可重建） | ❌ 缓存，不要 |

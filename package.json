@@ -44,6 +44,7 @@
   "types": "./dist/index.d.ts",
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
+    "postbuild": "node scripts/copy-skill-assets.mjs",
     "dev": "tsx src/cli/index.ts",
     "clean": "rimraf dist",
     "prebuild": "npm run clean",

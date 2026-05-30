@@ -5,7 +5,7 @@ const BEGIN_MARK = "# BEGIN DUOSHE";
 const END_MARK = "# END DUOSHE";
 
 // Rules that should be private per-developer (NOT committed):
-// - config.json holds local paths and assistantMode preference
+// - config.json holds local paths and per-machine preferences
 // - CANDIDATES are unconfirmed drafts the user hasn't decided on
 // - SESSIONS are private chat archives
 // - index.db is a local FTS5 cache, regenerable
