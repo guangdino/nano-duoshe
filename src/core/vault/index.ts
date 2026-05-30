@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename } from "node:path";
-import type { GitInsights, ProjectScan } from "../types.js";
+import type { GitInsights, ProjectProfile, ProjectScan } from "../types.js";
 import { defaultConfig, writeConfig } from "./config.js";
 import { vaultPathsFor, type VaultPaths } from "./paths.js";
 import {
@@ -51,6 +51,7 @@ export function initVault(opts: {
   scan: ProjectScan;
   git: GitInsights;
   force?: boolean;
+  profile?: ProjectProfile;
 }): VaultInitResult {
   const paths = vaultPathsFor(opts.projectRoot);
   const force = opts.force === true;
@@ -78,8 +79,14 @@ export function initVault(opts: {
     );
   }
 
+  const projectRender: Parameters<typeof renderProjectMd>[0] = {
+    projectName,
+    scan: opts.scan,
+    git: opts.git,
+  };
+  if (opts.profile !== undefined) projectRender.profile = opts.profile;
   const fileActions: VaultInitResult["fileActions"] = {
-    "PROJECT.md": writeMd(paths.project, renderProjectMd({ projectName, scan: opts.scan, git: opts.git }), { force }),
+    "PROJECT.md": writeMd(paths.project, renderProjectMd(projectRender), { force }),
     "CODEMAP.md": writeMd(paths.codeMap, renderCodeMapMd({ projectName, scan: opts.scan, git: opts.git }), { force }),
     "DECISIONS.md": writeMd(paths.decisions, renderDecisionsMd(), { force }),
     "TROUBLESHOOTING.md": writeMd(paths.troubleshooting, renderTroubleshootingMd(), { force }),

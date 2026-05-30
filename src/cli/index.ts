@@ -7,6 +7,7 @@ import { registerGraphCommand } from "./commands/graph.js";
 import { registerGuideCommand } from "./commands/guide.js";
 import { registerInitCommand } from "./commands/init.js";
 import { registerMcpCommand } from "./commands/mcp.js";
+import { registerProfileCommand } from "./commands/profile.js";
 import { registerRememberCommand } from "./commands/remember.js";
 import { registerReviewCommand } from "./commands/review.js";
 import { registerSearchCommand } from "./commands/search.js";
@@ -117,6 +118,7 @@ registerSyncCommand(program);
 registerMcpCommand(program);
 registerSkillCommand(program);
 registerGraphCommand(program);
+registerProfileCommand(program);
 registerUpgradeCommand(program);
 
 // Soft update notifier — runs after the command finishes, never blocks it.

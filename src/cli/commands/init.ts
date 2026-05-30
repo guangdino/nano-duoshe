@@ -9,9 +9,12 @@ import {
   uninstallShells,
 } from "../../adapters/claude-md.js";
 import { syncGitignore } from "../../adapters/gitignore.js";
+import { detectProfile, profileLabel } from "../../core/profile/detect.js";
 import { fullScan } from "../../core/scanner/index.js";
 import { installBundledSkills } from "../../core/skills/manager.js";
 import { initVault, vaultExists } from "../../core/vault/index.js";
+import { readConfig, writeConfig } from "../../core/vault/config.js";
+import { vaultPathsFor } from "../../core/vault/paths.js";
 import { runGuide } from "./guide.js";
 import { log } from "../log.js";
 
@@ -80,8 +83,13 @@ async function runInit(opts: InitOptions): Promise<void> {
     log.info("不是 git 仓库 — 跳过 git 历史分析");
   }
 
+  const guess = detectProfile(scan, root);
+  log.step("识别项目类型");
+  log.ok(`猜测：${kleur.bold(profileLabel(guess.profile))}（${guess.reason}）`);
+  log.raw(kleur.gray(`    如果不对，用 ${kleur.cyan("duoshe profile set <类型>")} 改；查看类型：${kleur.cyan("duoshe profile list")}`));
+
   log.step("写入记忆库文件");
-  const init = initVault({ projectRoot: root, scan, git, force: opts.force === true });
+  const init = initVault({ projectRoot: root, scan, git, force: opts.force === true, profile: guess.profile });
   for (const [name, action] of Object.entries(init.fileActions)) {
     if (action === "wrote") log.ok(`写入 .duoshe/${name}`);
     else if (action === "skipped-existing") log.info(`保留现有的 .duoshe/${name}`);
@@ -115,6 +123,16 @@ async function runInit(opts: InitOptions): Promise<void> {
     else if (r.status === "skipped-no-existing") log.info(`${r.file} 不存在，跳过`);
   }
 
+  // Persist the auto-detected profile UNLESS the user has already set one
+  // manually. Manual setting always wins — we don't second-guess the user.
+  const cfgPath = vaultPathsFor(root).config;
+  const cfg = readConfig(cfgPath);
+  if (cfg && cfg.profileSetBy !== "user") {
+    cfg.profile = guess.profile;
+    cfg.profileSetBy = "auto";
+    writeConfig(cfgPath, cfg);
+  }
+
   const giAction = syncGitignore(root);
   if (giAction.status !== "skipped-no-repo") {
     log.step("更新 .gitignore（让团队记忆能 commit，私人状态保持本地）");
@@ -139,11 +157,48 @@ async function runInit(opts: InitOptions): Promise<void> {
   log.raw(kleur.green().bold("  准备好了。"));
   log.raw(kleur.gray(`  用时 ${elapsed}s`));
   log.blank();
-  log.raw(kleur.bold("  现在做一件事就够了："));
-  log.raw(`    运行 ${kleur.cyan("duoshe guide")}，回答 7 个小问题，让 AI 真正认识这个项目。`);
-  log.blank();
-  log.raw(kleur.gray("  之后想到什么，随时用 `duoshe remember \"...\"` 记下来。"));
+  printFirstStepForProfile(guess.profile);
   log.raw(kleur.gray("  连接到 AI 工具的方法见 .duoshe/SETUP.md（已经为你生成好了）。"));
+  log.blank();
+}
+
+// First-run hint tailored to the detected profile. The shape is always the
+// same — one bold "do this first" line + one example `duoshe remember` call —
+// so the user gets a concrete next action that fits their actual project.
+function printFirstStepForProfile(profile: import("../../core/types.js").ProjectProfile): void {
+  switch (profile) {
+    case "kid":
+      log.raw(kleur.bold("  现在试试："));
+      log.raw(`    ${kleur.cyan('duoshe remember "我想做一个 ___ 游戏"')}`);
+      log.raw(kleur.gray(`    （想到什么都可以记下来，没有标准答案）`));
+      break;
+    case "non_dev_site":
+      log.raw(kleur.bold("  现在做这件事最重要："));
+      log.raw(`    把域名 / SSL / 服务器 / 后台账号信息记下来：`);
+      log.raw(`    ${kleur.cyan('duoshe remember "域名 example.com 到期日 2026-08-12，在阿里云续费"')}`);
+      log.raw(kleur.gray(`    然后看一眼 ${kleur.cyan("duoshe profile show")} 了解你能记些什么。`));
+      break;
+    case "algo":
+      log.raw(kleur.bold("  现在做这件事："));
+      log.raw(`    把当前实验的基准记下来，方便以后对比：`);
+      log.raw(`    ${kleur.cyan('duoshe remember "v1 基线 settling time 35ms @ 1Nm step"')}`);
+      break;
+    case "embedded":
+      log.raw(kleur.bold("  现在做这件事："));
+      log.raw(`    把硬件约束或 ISR 边界先记一条：`);
+      log.raw(`    ${kleur.cyan('duoshe remember "X 函数运行在中断上下文，不能调阻塞 API"')}`);
+      break;
+    case "ai_app":
+      log.raw(kleur.bold("  现在做这件事："));
+      log.raw(`    记下当前模型 + system prompt 版本，方便以后对比效果：`);
+      log.raw(`    ${kleur.cyan('duoshe remember "当前用 claude-sonnet-4，system prompt v3，平均延迟 600ms"')}`);
+      break;
+    case "general":
+      log.raw(kleur.bold("  现在做一件事就够了："));
+      log.raw(`    运行 ${kleur.cyan("duoshe guide")}，回答 7 个小问题，让 AI 真正认识这个项目。`);
+      log.raw(kleur.gray("  之后想到什么，随时用 `duoshe remember \"...\"` 记下来。"));
+      break;
+  }
   log.blank();
 }
 

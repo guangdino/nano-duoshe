@@ -51,6 +51,22 @@ export type GitInsights = {
 // "chatty" = always adds a short follow-up, even if just encouragement
 export type AssistantMode = "quiet" | "normal" | "chatty";
 
+// A soft profile of what kind of project this is and what kind of user is
+// likely working on it. Used to pick a friendlier PROJECT.md template, a
+// more relevant first-step hint, and (later) a more relevant guide question
+// set. Auto-detected at init time, shown to the user transparently, and
+// overridable via `duoshe profile set <name>` — we never lock anyone in.
+export const PROJECT_PROFILES = [
+  "kid",            // 学生 / 小学生学编程 / 教程跟做
+  "non_dev_site",   // 不懂代码的人维护网站（WordPress / 静态站 / 部署到云）
+  "algo",           // 算法 / 控制 / ML 研究为主（MATLAB / Jupyter）
+  "embedded",       // 嵌入式 C / FPGA / PLC / 固件
+  "ai_app",         // 用 Claude / OpenAI / LangChain 等构建 AI 应用
+  "general",        // 通用：web / 服务端 / 库开发 / 其他
+] as const;
+
+export type ProjectProfile = (typeof PROJECT_PROFILES)[number];
+
 export type VaultConfig = {
   projectId: string;
   projectName: string;
@@ -63,6 +79,8 @@ export type VaultConfig = {
   enabledSkills: string[];
   assistantMode: AssistantMode;
   guideCompletedAt?: string;
+  profile?: ProjectProfile;
+  profileSetBy?: "auto" | "user";
   createdAt: string;
 };
 
