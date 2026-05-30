@@ -17,5 +17,11 @@ function bigramsOf(run: string): string[] {
 
 export function bigramize(text: string): string {
   if (!hasCjk(text)) return text;
-  return text.replace(CJK_RUN_RE, (run) => bigramsOf(run).join(" "));
+  // Wrap CJK bigrams in spaces so they don't fuse with adjacent ASCII/digits.
+  // Without this, "for循环用range" tokenizes as ["for循环", "环用range"], so
+  // a user searching for "for" / "range" / "循环" alone gets zero hits.
+  return text
+    .replace(CJK_RUN_RE, (run) => ` ${bigramsOf(run).join(" ")} `)
+    .replace(/\s+/g, " ")
+    .trim();
 }

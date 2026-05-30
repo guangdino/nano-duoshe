@@ -15,6 +15,7 @@ const RULE_BLOCK = `${BEGIN_MARK}
 # TODO.md / SETUP.md / CODEMAP.md / SKILLS/) is meant to be committed —
 # share it with your team and AI agents.
 .duoshe/config.json
+.duoshe/nudges.json
 .duoshe/CANDIDATES/
 .duoshe/SESSIONS/
 .duoshe/index.db

@@ -18,6 +18,12 @@ export type EntryPoint = {
   kind: "main" | "test" | "config" | "docs";
 };
 
+export type WorkspacePackage = {
+  name: string;
+  path: string;
+  language?: string;
+};
+
 export type ProjectScan = {
   root: string;
   stacks: Stack[];
@@ -25,6 +31,7 @@ export type ProjectScan = {
   entryPoints: EntryPoint[];
   totalFiles: number;
   totalSourceFiles: number;
+  workspaces?: WorkspacePackage[];
   scannedAt: string;
 };
 

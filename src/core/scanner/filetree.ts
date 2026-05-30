@@ -114,6 +114,9 @@ const ENTRY_PATTERNS: { pattern: RegExp; kind: EntryPoint["kind"] }[] = [
   { pattern: /^main\.go$/i, kind: "main" },
   { pattern: /^main\.rs$/i, kind: "main" },
   { pattern: /^lib\.rs$/i, kind: "main" },
+  { pattern: /^index\.php$/i, kind: "main" },
+  { pattern: /^app\.php$/i, kind: "main" },
+  { pattern: /^artisan$/i, kind: "main" },
 ];
 
 const TIME_BUDGET_MS = 30_000;

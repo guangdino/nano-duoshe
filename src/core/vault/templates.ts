@@ -236,6 +236,17 @@ ${bullets(entryLines)}
 | --- | --- | ---: |
 ${dirLines.length === 0 ? "| _(无)_ | _(未识别)_ | 0 |" : dirLines.join("\n")}
 
+${
+  scan.workspaces && scan.workspaces.length > 0
+    ? `## monorepo 子包（来自 package.json workspaces）\n\n| 名字 | 路径 | 语言 |\n| --- | --- | --- |\n${scan.workspaces
+        .map(
+          (w) =>
+            `| \`${w.name}\` | \`${w.path}/\` | ${w.language ?? "JavaScript"} |`,
+        )
+        .join("\n")}\n`
+    : ""
+}
+
 ## 热点文件
 
 ${bullets(hotLines)}

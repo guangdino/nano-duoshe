@@ -5,6 +5,7 @@ import { readConfig } from "../core/vault/config.js";
 import { vaultExists, vaultPathsFor } from "../core/vault/index.js";
 import type { AssistantMode } from "../core/types.js";
 import { log } from "./log.js";
+import { shouldShowAndMark } from "./nudge-throttle.js";
 
 // A nudge is a short, optional follow-up shown after a command completes.
 // Each nudge has a minimum mode threshold: it only shows if the current
@@ -92,16 +93,20 @@ export function nudgeAfterRemember(root: string, contentLength: number): void {
   const mode = getMode(root);
   const pending = getPendingCount(root);
 
-  // Content too short — worth surfacing even in normal mode
+  // Content too short — worth surfacing once per day per vault.
+  // Without throttling this nags the user every time they jot a quick note
+  // (e.g. students or anyone using duoshe as a learning notebook).
   if (contentLength < 20) {
-    const nudge: Nudge = {
-      level: "normal",
-      lines: [
-        "这条记录有点短，AI 可能看不太懂。",
-        "要不要重新记一条，说得更完整一点？",
-      ],
-    };
-    if (modeAllows(mode, nudge.level)) printNudge(nudge);
+    if (shouldShowAndMark(root, "short-content")) {
+      const nudge: Nudge = {
+        level: "normal",
+        lines: [
+          "这条记录有点短，AI 可能看不太懂。",
+          "下次试试写得更完整一点（这条提醒今天就到这）。",
+        ],
+      };
+      if (modeAllows(mode, nudge.level)) printNudge(nudge);
+    }
     return;
   }
 

@@ -1,7 +1,9 @@
 import { existsSync } from "node:fs";
 import type { Command } from "commander";
 import kleur from "kleur";
+import { CandidateStore } from "../../core/candidate/index.js";
 import { reindex, search } from "../../core/index/index.js";
+import type { Candidate } from "../../core/types.js";
 import { vaultExists, vaultPathsFor } from "../../core/vault/index.js";
 import { nudgeAfterSearchEmpty } from "../assistant.js";
 import { log } from "../log.js";
@@ -66,8 +68,9 @@ async function runSearch(query: string, opts: SearchOpts): Promise<void> {
   const searchOpts: { limit: number; type?: string } = { limit };
   if (opts.type) searchOpts.type = opts.type;
   const hits = search(root, query, searchOpts);
+  const pendingMatches = searchPendingCandidates(root, query);
 
-  if (hits.length === 0) {
+  if (hits.length === 0 && pendingMatches.length === 0) {
     log.info(`没有找到"${query}"相关的内容。`);
     nudgeAfterSearchEmpty(root, query);
     return;
@@ -82,6 +85,51 @@ async function runSearch(query: string, opts: SearchOpts): Promise<void> {
     log.raw(`  ${highlight(h.snippet)}`);
     log.blank();
   }
+
+  if (pendingMatches.length > 0) {
+    const lead = hits.length > 0
+      ? `还有 ${pendingMatches.length} 条 ${kleur.yellow("[待确认]")} 记录也匹配`
+      : `找到 ${pendingMatches.length} 条 ${kleur.yellow("[待确认]")} 记录匹配`;
+    log.raw(kleur.bold(`  ${lead}（运行 ${kleur.cyan("duoshe review")} 决定是否保存）：`));
+    log.blank();
+    for (const c of pendingMatches) {
+      log.raw(`${kleur.yellow("[待确认]")} ${kleur.cyan(c.id)}  ${kleur.bold(c.title)}`);
+      log.raw(`  ${kleur.gray(highlightSubstring(c.content, query))}`);
+      log.blank();
+    }
+  }
+}
+
+function searchPendingCandidates(root: string, query: string): Candidate[] {
+  try {
+    const store = new CandidateStore(root);
+    const needle = query.toLowerCase().trim();
+    if (needle.length === 0) return [];
+    return store
+      .listByStatus("pending")
+      .filter((c) => c.content.toLowerCase().includes(needle) || c.title.toLowerCase().includes(needle))
+      .slice(0, 8);
+  } catch {
+    return [];
+  }
+}
+
+function highlightSubstring(content: string, query: string, max = 160): string {
+  const oneLine = content.replace(/\s+/g, " ").trim();
+  if (oneLine.length === 0) return "";
+  const idx = oneLine.toLowerCase().indexOf(query.toLowerCase());
+  const pivot = idx >= 0 ? idx : 0;
+  const half = Math.floor(max / 2);
+  const start = Math.max(0, pivot - half);
+  const end = Math.min(oneLine.length, start + max);
+  let out = oneLine.slice(start, end);
+  if (start > 0) out = `…${out}`;
+  if (end < oneLine.length) out = `${out}…`;
+  if (idx >= 0) {
+    const re = new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi");
+    out = out.replace(re, (m) => kleur.bgYellow().black(m));
+  }
+  return out;
 }
 
 async function runReindex(opts: ReindexOpts): Promise<void> {

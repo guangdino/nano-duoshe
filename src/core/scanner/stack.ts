@@ -8,16 +8,81 @@ type NpmPkg = {
   packageManager?: string;
   dependencies?: Record<string, string>;
   devDependencies?: Record<string, string>;
+  workspaces?: string[] | { packages?: string[] };
 };
+
+// Reads a JSON file and tolerates a UTF-8 BOM. Windows editors (notepad,
+// PowerShell `Set-Content -Encoding utf8`) commonly emit BOMs that vanilla
+// JSON.parse rejects — silently breaking detection on user repos.
+function readJsonSafe<T>(path: string): T | null {
+  let raw: string;
+  try {
+    raw = readFileSync(path, "utf8");
+  } catch {
+    return null;
+  }
+  if (raw.charCodeAt(0) === 0xfeff) raw = raw.slice(1);
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    return null;
+  }
+}
+
+// Cheap workspace-tsconfig probe: looks at a few first-level directory entries
+// matched by simple glob prefixes (no full glob lib needed here).
+function workspacesContainTsconfig(root: string, workspaces: NpmPkg["workspaces"]): boolean {
+  for (const sub of iterWorkspaceDirs(root, workspaces)) {
+    if (existsSync(join(sub, "tsconfig.json"))) return true;
+  }
+  return false;
+}
+
+function* iterWorkspaceDirs(
+  root: string,
+  workspaces: NpmPkg["workspaces"],
+): Iterable<string> {
+  const patterns = Array.isArray(workspaces) ? workspaces : (workspaces?.packages ?? []);
+  for (const pat of patterns) {
+    const dir = pat.replace(/\/\*+$/, "").replace(/\*+$/, "");
+    if (!dir) continue;
+    const abs = join(root, dir);
+    let subs: string[];
+    try {
+      subs = readdirSync(abs);
+    } catch {
+      continue;
+    }
+    for (const sub of subs) {
+      const subAbs = join(abs, sub);
+      if (existsSync(join(subAbs, "package.json"))) yield subAbs;
+    }
+  }
+}
+
+export type WorkspacePkgInfo = { name: string; path: string; language?: string };
+
+export function detectWorkspacePackages(root: string): WorkspacePkgInfo[] {
+  const pkg = readJsonSafe<NpmPkg>(join(root, "package.json"));
+  if (!pkg?.workspaces) return [];
+
+  const results: WorkspacePkgInfo[] = [];
+  for (const subAbs of iterWorkspaceDirs(root, pkg.workspaces)) {
+    const subPkg = readJsonSafe<NpmPkg>(join(subAbs, "package.json")) ?? {};
+    const name = subPkg.name ?? subAbs.split(/[\\/]/).pop() ?? "?";
+    const rel = subAbs.replace(root, "").replace(/^[\\/]+/, "").replace(/\\/g, "/");
+    const info: WorkspacePkgInfo = { name, path: rel };
+    if (existsSync(join(subAbs, "tsconfig.json"))) info.language = "TypeScript";
+    results.push(info);
+    if (results.length >= 30) break; // cap for safety
+  }
+  return results;
+}
 
 function detectNpm(root: string): Stack | null {
   const manifest = join(root, "package.json");
   if (!existsSync(manifest)) return null;
-  let pkg: NpmPkg = {};
-  try {
-    pkg = JSON.parse(readFileSync(manifest, "utf8")) as NpmPkg;
-  } catch {
-  }
+  const pkg: NpmPkg = readJsonSafe<NpmPkg>(manifest) ?? {};
 
   const deps = { ...(pkg.dependencies ?? {}), ...(pkg.devDependencies ?? {}) };
   let framework: string | undefined;
@@ -30,7 +95,13 @@ function detectNpm(root: string): Stack | null {
   else if (deps.fastify) framework = "Fastify";
   else if (deps["@modelcontextprotocol/sdk"]) framework = "MCP server";
 
-  const hasTs = !!deps.typescript || existsSync(join(root, "tsconfig.json"));
+  // Workspace-style monorepos often have tsconfig only inside packages, not at root.
+  const hasWorkspaceTs = Array.isArray(pkg.workspaces) && workspacesContainTsconfig(root, pkg.workspaces);
+  const hasTs =
+    !!deps.typescript ||
+    existsSync(join(root, "tsconfig.json")) ||
+    existsSync(join(root, "tsconfig.base.json")) ||
+    hasWorkspaceTs;
   const language = hasTs ? "TypeScript" : "JavaScript";
 
   let pm: string | undefined;
@@ -130,6 +201,53 @@ function detectGo(root: string): Stack | null {
   return stack;
 }
 
+function detectPhp(root: string): Stack | null {
+  const hasComposer = existsSync(join(root, "composer.json"));
+  const hasIndexPhp = existsSync(join(root, "index.php"));
+  let entries: string[] = [];
+  try {
+    entries = readdirSync(root);
+  } catch {
+    // ignore
+  }
+  const hasAnyPhp = entries.some((e) => e.endsWith(".php"));
+  if (!hasComposer && !hasIndexPhp && !hasAnyPhp) return null;
+
+  const manifest = hasComposer ? "composer.json" : hasIndexPhp ? "index.php" : entries.find((e) => e.endsWith(".php"))!;
+
+  let framework: string | undefined;
+  if (hasComposer) {
+    try {
+      const composer = readJsonSafe<{ require?: Record<string, string>; "require-dev"?: Record<string, string> }>(join(root, "composer.json"));
+      const txt = composer ? JSON.stringify(composer).toLowerCase() : readFileSync(join(root, "composer.json"), "utf8").toLowerCase();
+      if (txt.includes("laravel/framework")) framework = "Laravel";
+      else if (txt.includes("symfony/symfony") || txt.includes("symfony/framework-bundle")) framework = "Symfony";
+      else if (txt.includes("codeigniter4/framework")) framework = "CodeIgniter";
+      else if (txt.includes("cakephp/cakephp")) framework = "CakePHP";
+      else if (txt.includes("yiisoft/yii2")) framework = "Yii";
+    } catch {
+      // ignore
+    }
+  }
+  if (!framework) {
+    if (existsSync(join(root, "wp-config.php")) || existsSync(join(root, "wp-config-sample.php"))) {
+      framework = "WordPress";
+    } else if (existsSync(join(root, "artisan"))) {
+      framework = "Laravel";
+    } else if (existsSync(join(root, "bin/console"))) {
+      framework = "Symfony";
+    }
+  }
+
+  const stack: Stack = {
+    language: "PHP",
+    manifestFile: manifest,
+  };
+  if (framework !== undefined) stack.framework = framework;
+  if (hasComposer) stack.packageManager = "composer";
+  return stack;
+}
+
 function detectTerraform(root: string): Stack | null {
   try {
     const rootTf = readdirSync(root).find((e) => e.endsWith(".tf"));
@@ -223,6 +341,7 @@ export function detectStacks(root: string): Stack[] {
     detectDotNet,
     detectGo,
     detectRust,
+    detectPhp,
     detectTerraform,
     detectAnsible,
     detectDocker,

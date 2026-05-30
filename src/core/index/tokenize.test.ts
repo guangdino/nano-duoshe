@@ -30,11 +30,16 @@ describe("bigramize", () => {
     expect(bigramize("DuoShe 中文测试 v1.0")).toBe("DuoShe 中文 文测 测试 v1.0");
   });
 
-  it("handles mixed runs with digits and CJK (digits break CJK runs)", () => {
-    // "用" is a single CJK char run -> "用"
-    // "12" is ASCII -> stays "12"
-    // "个月" is CJK run of 2 -> "个月"
-    // "不转方向" is CJK run of 4 -> "不转 转方 方向"
-    expect(bigramize("用 12个月 不转方向")).toBe("用 12个月 不转 转方 方向");
+  it("handles mixed runs with digits and CJK (CJK runs are space-separated from ASCII)", () => {
+    // Each CJK run is wrapped in spaces so it doesn't fuse with adjacent ASCII.
+    // Same treatment is applied at query time, so "12个月" still retrieves docs
+    // containing both tokens (FTS5 AND).
+    expect(bigramize("用 12个月 不转方向")).toBe("用 12 个月 不转 转方 方向");
+  });
+
+  it("separates CJK from adjacent latin so each side is searchable on its own", () => {
+    // Regression: previously "for循环用range" indexed as ["for循环", "环用range"],
+    // so a search for "for" / "range" / "循环" alone returned zero hits.
+    expect(bigramize("for循环用range")).toBe("for 循环 环用 range");
   });
 });
