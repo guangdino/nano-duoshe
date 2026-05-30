@@ -5,7 +5,6 @@ import { CandidateStore } from "../../core/candidate/index.js";
 import { reindex, search } from "../../core/index/index.js";
 import type { Candidate } from "../../core/types.js";
 import { vaultExists, vaultPathsFor } from "../../core/vault/index.js";
-import { nudgeAfterSearchEmpty } from "../assistant.js";
 import { log } from "../log.js";
 
 type SearchOpts = {
@@ -72,7 +71,6 @@ async function runSearch(query: string, opts: SearchOpts): Promise<void> {
 
   if (hits.length === 0 && pendingMatches.length === 0) {
     log.info(`没有找到"${query}"相关的内容。`);
-    nudgeAfterSearchEmpty(root, query);
     return;
   }
 

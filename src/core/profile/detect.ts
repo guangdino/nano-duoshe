@@ -106,10 +106,23 @@ export function detectProfile(scan: ProjectScan, root: string): ProfileGuess {
   }
 
   // ─── algo ──────────────────────────────────────────────────────────
+  // Stack-based check (fires when matlab skill is enabled).
   if (langs.has("MATLAB") || fws.has("Simulink")) {
     return {
       profile: "algo",
       reason: "识别到 MATLAB / Simulink（算法 / 控制工程）",
+      confidence: "high",
+    };
+  }
+  // File-based fallback (fires even before matlab skill is enabled).
+  const matlabFiles = names.filter(
+    (n) => n.endsWith(".slx") || n.endsWith(".mlx") || n.endsWith(".mdl"),
+  );
+  const mFiles = names.filter((n) => n.endsWith(".m"));
+  if (matlabFiles.length > 0 || mFiles.length >= 3) {
+    return {
+      profile: "algo",
+      reason: "识别到 MATLAB / Simulink 文件（启用 matlab skill 可获得更完整的支持）",
       confidence: "high",
     };
   }
@@ -128,6 +141,7 @@ export function detectProfile(scan: ProjectScan, root: string): ProfileGuess {
   }
 
   // ─── embedded ──────────────────────────────────────────────────────
+  // Stack-based check (fires when embedded/fpga/plc skills are enabled).
   if (
     langs.has("C/C++") ||
     langs.has("VHDL") ||
@@ -140,6 +154,21 @@ export function detectProfile(scan: ProjectScan, root: string): ProfileGuess {
     return {
       profile: "embedded",
       reason: `识别到 ${which}（嵌入式 / FPGA / PLC）`,
+      confidence: "high",
+    };
+  }
+  // File-based fallback (fires even before embedded skill is enabled).
+  const hasEmbeddedSignal =
+    names.some((n) => n === "platformio.ini" || n === "west.yml" || n.endsWith(".ino")) ||
+    names.some((n) => n.endsWith(".tspproj") || n.endsWith(".plcproj")) ||
+    names.some((n) => /\.(vhd|vhdl|sv|svh)$/i.test(n)) ||
+    names.some((n) => n.endsWith(".v") && !n.endsWith(".sv")) ||
+    names.some((n) => n.endsWith(".st") || n.endsWith(".scl")) ||
+    (names.includes("CMakeLists.txt") && names.some((n) => n.endsWith(".c") || n.endsWith(".h")));
+  if (hasEmbeddedSignal) {
+    return {
+      profile: "embedded",
+      reason: "识别到嵌入式 / 固件 / HDL 文件（启用 embedded skill 可获得更完整的支持）",
       confidence: "high",
     };
   }

@@ -45,12 +45,6 @@ export type GitInsights = {
   remoteUrl?: string;
 };
 
-// Controls how proactively the assistant offers suggestions after each command.
-// "quiet"  = only speaks when something is genuinely wrong or actionable
-// "normal" = default: speaks when there is a clear next step worth surfacing
-// "chatty" = always adds a short follow-up, even if just encouragement
-export type AssistantMode = "quiet" | "normal" | "chatty";
-
 // A soft profile of what kind of project this is and what kind of user is
 // likely working on it. Used to pick a friendlier PROJECT.md template, a
 // more relevant first-step hint, and (later) a more relevant guide question
@@ -77,7 +71,6 @@ export type VaultConfig = {
   maxContextChars: number;
   allowAgentPublish?: boolean;
   enabledSkills: string[];
-  assistantMode: AssistantMode;
   guideCompletedAt?: string;
   profile?: ProjectProfile;
   profileSetBy?: "auto" | "user";

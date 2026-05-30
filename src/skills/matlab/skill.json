@@ -1,0 +1,22 @@
+{
+  "name": "matlab",
+  "version": "0.1.0",
+  "description": "MATLAB / Simulink / 控制算法专项支持 —— 激活后 rescan 会识别 .slx / .mlx / .m 等文件，并为算法项目的目录结构显示正确标签",
+  "enabledByDefault": false,
+  "postEnableHint": "已启用。运行 `duoshe rescan` 刷新：会识别 MATLAB / Simulink 技术栈，并为算法 / 研究类目录添加专用标签。",
+  "detectors": ["matlab"],
+  "dirHints": {
+    "matlab": "MATLAB 代码",
+    "octave": "Octave 代码",
+    "simulink": "Simulink 模型",
+    "algorithms": "算法实现",
+    "algorithm": "算法实现",
+    "algo": "算法实现",
+    "derivations": "数学推导",
+    "derivation": "数学推导",
+    "golden": "黄金参考数据",
+    "baselines": "基线数据",
+    "captures": "实验采集数据",
+    "recordings": "实验录制"
+  }
+}

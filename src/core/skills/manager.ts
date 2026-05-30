@@ -22,7 +22,20 @@ export type SkillStatus = {
   postEnableHint?: string | undefined;
 };
 
-type SkillJson = { name?: string; description?: string; postEnableHint?: string };
+type SkillJson = {
+  name?: string;
+  description?: string;
+  postEnableHint?: string;
+  // Optional detector names (keys from OPTIONAL_DETECTORS in stack.ts)
+  detectors?: string[];
+  // Domain-specific dir hints merged into scanFileTree at rescan time
+  dirHints?: Record<string, string>;
+};
+
+export type SkillExtensions = {
+  detectors: string[];
+  dirHints: Record<string, string>;
+};
 
 function readSkillMeta(skillDir: string): SkillJson {
   const metaPath = join(skillDir, "skill.json");
@@ -116,6 +129,25 @@ export function enableSkill(projectRoot: string, skillName: string): string | un
 
   updateEnabledSkillsConfig(paths.config, skillName, true);
   return readSkillMeta(availDir).postEnableHint;
+}
+
+// Returns combined detectors + dirHints from all currently enabled skills.
+// Called by fullScan so that enabled skills automatically enrich the scan.
+export function getEnabledSkillExtensions(projectRoot: string): SkillExtensions {
+  const paths = vaultPathsFor(projectRoot);
+  const detectors: string[] = [];
+  const dirHints: Record<string, string> = {};
+
+  if (!existsSync(paths.skillsEnabled)) return { detectors, dirHints };
+
+  for (const entry of readdirSync(paths.skillsEnabled, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    const meta = readSkillMeta(join(paths.skillsEnabled, entry.name));
+    if (meta.detectors) detectors.push(...meta.detectors);
+    if (meta.dirHints) Object.assign(dirHints, meta.dirHints);
+  }
+
+  return { detectors, dirHints };
 }
 
 export function disableSkill(projectRoot: string, skillName: string): void {

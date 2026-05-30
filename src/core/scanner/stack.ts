@@ -606,26 +606,41 @@ function detectRust(root: string): Stack | null {
   return stack;
 }
 
-export function detectStacks(root: string): Stack[] {
-  const detectors = [
-    detectNpm,
-    detectPython,
-    detectDotNet,
-    detectGo,
-    detectRust,
-    detectPhp,
-    detectMatlab,
-    detectEmbedded,
-    detectFpga,
-    detectPlc,
-    detectTerraform,
-    detectAnsible,
-    detectDocker,
-  ];
+// Core detectors run on every init/rescan — language-agnostic and universal.
+const CORE_DETECTORS = [
+  detectNpm,
+  detectPython,
+  detectDotNet,
+  detectGo,
+  detectRust,
+  detectPhp,
+  detectDocker,
+];
+
+// Optional detectors keyed by name. They are bundled in the package (larger
+// install is acceptable) but only run when the matching skill is enabled.
+// Activate via: duoshe skill enable <name>  →  duoshe rescan
+const OPTIONAL_DETECTORS: Record<string, (root: string) => Stack | null> = {
+  matlab: detectMatlab,
+  embedded: detectEmbedded,
+  fpga: detectFpga,
+  plc: detectPlc,
+  terraform: detectTerraform,
+  ansible: detectAnsible,
+};
+
+export function detectStacks(root: string, enabledDetectors: string[] = []): Stack[] {
   const stacks: Stack[] = [];
-  for (const fn of detectors) {
+  for (const fn of CORE_DETECTORS) {
     const s = fn(root);
     if (s) stacks.push(s);
+  }
+  for (const name of enabledDetectors) {
+    const fn = OPTIONAL_DETECTORS[name];
+    if (fn) {
+      const s = fn(root);
+      if (s) stacks.push(s);
+    }
   }
   return stacks;
 }

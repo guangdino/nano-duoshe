@@ -1,0 +1,22 @@
+{
+  "name": "devops",
+  "version": "0.1.0",
+  "description": "DevOps / 基础设施专项支持（Terraform / Ansible / Docker Compose）—— 激活后 rescan 会识别 IaC 技术栈，并为基础设施目录显示正确标签",
+  "enabledByDefault": false,
+  "postEnableHint": "已启用。运行 `duoshe rescan` 刷新：会识别 Terraform / Ansible 技术栈，并为基础设施目录添加专用标签。",
+  "detectors": ["terraform", "ansible"],
+  "dirHints": {
+    "terraform": "基础设施（Terraform）",
+    "tf": "基础设施（Terraform）",
+    "infra": "基础设施",
+    "ansible": "基础设施（Ansible）",
+    "playbooks": "Ansible playbooks",
+    "roles": "Ansible roles",
+    "docker": "容器镜像",
+    "charts": "Helm charts",
+    "k8s": "Kubernetes 配置",
+    "kubernetes": "Kubernetes 配置",
+    "helm": "Helm charts",
+    "modules": "Terraform 模块"
+  }
+}

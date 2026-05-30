@@ -4,7 +4,6 @@ import type { Command } from "commander";
 import kleur from "kleur";
 import { readConfig, writeConfig } from "../../core/vault/config.js";
 import { vaultExists, vaultPathsFor } from "../../core/vault/index.js";
-import { nudgeAfterGuide } from "../assistant.js";
 import { log } from "../log.js";
 
 const BEGIN_GUIDE = "<!-- BEGIN DUOSHE-GUIDE -->";
@@ -192,7 +191,6 @@ export async function runGuide(root = process.cwd()): Promise<void> {
   log.blank();
   log.ok("已保存到项目记忆。AI 下次进来就能看到这些内容了。");
 
-  nudgeAfterGuide(root);
 }
 
 export function registerGuideCommand(program: Command): void {

@@ -89,7 +89,7 @@ async function runInit(opts: InitOptions): Promise<void> {
   log.raw(kleur.gray(`    如果不对，用 ${kleur.cyan("duoshe profile set <类型>")} 改；查看类型：${kleur.cyan("duoshe profile list")}`));
 
   log.step("写入记忆库文件");
-  const init = initVault({ projectRoot: root, scan, git, force: opts.force === true, profile: guess.profile });
+  const init = initVault({ projectRoot: root, scan, git, force: opts.force === true });
   for (const [name, action] of Object.entries(init.fileActions)) {
     if (action === "wrote") log.ok(`写入 .duoshe/${name}`);
     else if (action === "skipped-existing") log.info(`保留现有的 .duoshe/${name}`);
@@ -162,31 +162,33 @@ async function runInit(opts: InitOptions): Promise<void> {
   log.blank();
 }
 
-// First-run hint tailored to the detected profile. The shape is always the
-// same — one bold "do this first" line + one example `duoshe remember` call —
-// so the user gets a concrete next action that fits their actual project.
+// First-run hint tailored to the detected profile.
+// For domain-specific profiles the hint also suggests enabling the matching
+// skill so that the next rescan picks up richer stack detection and dir labels.
 function printFirstStepForProfile(profile: import("../../core/types.js").ProjectProfile): void {
   switch (profile) {
     case "kid":
       log.raw(kleur.bold("  现在试试："));
       log.raw(`    ${kleur.cyan('duoshe remember "我想做一个 ___ 游戏"')}`);
-      log.raw(kleur.gray(`    （想到什么都可以记下来，没有标准答案）`));
+      log.raw(kleur.gray("    （想到什么都可以记下来，没有标准答案）"));
       break;
     case "non_dev_site":
       log.raw(kleur.bold("  现在做这件事最重要："));
       log.raw(`    把域名 / SSL / 服务器 / 后台账号信息记下来：`);
       log.raw(`    ${kleur.cyan('duoshe remember "域名 example.com 到期日 2026-08-12，在阿里云续费"')}`);
-      log.raw(kleur.gray(`    然后看一眼 ${kleur.cyan("duoshe profile show")} 了解你能记些什么。`));
+      log.raw(kleur.gray(`    启用网站专项支持：${kleur.cyan("duoshe skill enable wordpress")}  然后  ${kleur.cyan("duoshe rescan")}`));
       break;
     case "algo":
       log.raw(kleur.bold("  现在做这件事："));
       log.raw(`    把当前实验的基准记下来，方便以后对比：`);
       log.raw(`    ${kleur.cyan('duoshe remember "v1 基线 settling time 35ms @ 1Nm step"')}`);
+      log.raw(kleur.gray(`    启用算法专项支持：${kleur.cyan("duoshe skill enable matlab")}  然后  ${kleur.cyan("duoshe rescan")}`));
       break;
     case "embedded":
       log.raw(kleur.bold("  现在做这件事："));
       log.raw(`    把硬件约束或 ISR 边界先记一条：`);
       log.raw(`    ${kleur.cyan('duoshe remember "X 函数运行在中断上下文，不能调阻塞 API"')}`);
+      log.raw(kleur.gray(`    启用嵌入式专项支持：${kleur.cyan("duoshe skill enable embedded")}  然后  ${kleur.cyan("duoshe rescan")}`));
       break;
     case "ai_app":
       log.raw(kleur.bold("  现在做这件事："));
@@ -195,8 +197,8 @@ function printFirstStepForProfile(profile: import("../../core/types.js").Project
       break;
     case "general":
       log.raw(kleur.bold("  现在做一件事就够了："));
-      log.raw(`    运行 ${kleur.cyan("duoshe guide")}，回答 7 个小问题，让 AI 真正认识这个项目。`);
-      log.raw(kleur.gray("  之后想到什么，随时用 `duoshe remember \"...\"` 记下来。"));
+      log.raw(`    运行 ${kleur.cyan("duoshe guide")}，回答几个小问题，让 AI 真正认识这个项目。`);
+      log.raw(kleur.gray('  之后想到什么，随时用 `duoshe remember "..."` 记下来。'));
       break;
   }
   log.blank();

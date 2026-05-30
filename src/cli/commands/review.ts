@@ -4,7 +4,6 @@ import { CandidateStore, publishToMarkdown } from "../../core/candidate/index.js
 import { reindex } from "../../core/index/index.js";
 import { CANDIDATE_STATUSES, type Candidate, type CandidateStatus } from "../../core/types.js";
 import { vaultExists } from "../../core/vault/index.js";
-import { nudgeAfterPublish, nudgeAfterReject, nudgeAfterReviewEmpty } from "../assistant.js";
 import { log } from "../log.js";
 
 const STATUS_HUMAN_LABEL: Record<CandidateStatus, string> = {
@@ -75,7 +74,6 @@ async function runReview(opts: ReviewOptions): Promise<void> {
   if (list.length === 0) {
     if (opts.status === "pending") {
       log.info("没有待确认的记录。");
-      nudgeAfterReviewEmpty(root);
     } else {
       log.info(`没有状态为"${opts.status}"的记录。`);
     }
@@ -133,7 +131,6 @@ async function runPublish(id: string): Promise<void> {
     // reindex failure is non-fatal; search may be stale until next reindex
   }
 
-  nudgeAfterPublish(root);
 }
 
 async function runReject(id: string): Promise<void> {
@@ -157,8 +154,6 @@ async function runReject(id: string): Promise<void> {
 
   store.markRejected(id);
   log.ok(`已丢弃。`);
-
-  nudgeAfterReject(root);
 }
 
 export function registerReviewCommand(program: Command): void {

@@ -1,147 +1,13 @@
-import type { GitInsights, ProjectProfile, ProjectScan } from "../types.js";
+import type { GitInsights, ProjectScan } from "../types.js";
 
 const DRAFT_BANNER = `<!-- DUOSHE-DRAFT: 这段是 \`duoshe init\` 自动生成的草稿。
      可以随意修改。想让 \`duoshe rescan\` 保留你的修改，
      在那段内容上方加一行 <!-- USER-CONFIRMED --> 即可。 -->`;
 
-// Translates scanner-emitted English role hints into Chinese display strings.
-// Scanner uses stable English internally for tests; templates localize for display.
-const ROLE_ZH: Record<string, string> = {
-  "source code": "源代码",
-  "library code": "库代码",
-  "application code": "应用代码",
-  "application(s)": "应用",
-  "monorepo packages": "monorepo 包",
-  packages: "包",
-  "command-line entry points": "命令行入口",
-  "internal (non-public) code": "内部代码（不对外）",
-  tests: "测试",
-  "tests/specs": "测试 / 规格",
-  "end-to-end tests": "端到端测试",
-  documentation: "文档",
-  "example usage": "示例代码",
-  "build/dev scripts": "构建 / 开发脚本",
-  "executable scripts": "可执行脚本",
-  tooling: "工具",
-  configuration: "配置",
-  "public/static assets": "公共 / 静态资源",
-  "static assets": "静态资源",
-  assets: "资源",
-  templates: "模板",
-  "database migrations": "数据库迁移",
-  "data models": "数据模型",
-  "views/UI": "视图 / UI",
-  controllers: "控制器",
-  services: "服务",
-  "UI components": "UI 组件",
-  "pages/routes": "页面 / 路由",
-  "API surface": "API 接口",
-  routes: "路由",
-  utilities: "工具函数",
-  helpers: "辅助函数",
-  "type definitions": "类型定义",
-  hooks: "hooks",
-  middleware: "中间件",
-  "vendored dependencies": "vendored 依赖",
-  "third-party code": "第三方代码",
-  "GitHub workflows/config": "GitHub workflows / 配置",
-  "Claude Code settings": "Claude Code 设置",
-  "infrastructure (Terraform)": "基础设施（Terraform）",
-  "infrastructure (Ansible)": "基础设施（Ansible）",
-  "container images": "容器镜像",
-  // AI / agent
-  "AI prompts": "Prompt 模板",
-  evaluations: "评测集",
-  "agent definitions": "Agent 定义",
-  // Embedded firmware (C / C++)
-  "firmware entry": "固件入口",
-  drivers: "驱动",
-  "board support package": "板级支持包（BSP）",
-  "hardware abstraction": "硬件抽象层",
-  RTOS: "实时操作系统",
-  "C header files": "C 头文件",
-  "startup / boot code": "启动 / 引导代码",
-  "CMSIS (Cortex-M)": "CMSIS（Cortex-M 标准库）",
-  "middleware libraries": "中间件库（HAL/RTOS）",
-  // HDL / FPGA
-  "RTL (HDL sources)": "RTL（HDL 源码）",
-  "HDL sources": "HDL 源码",
-  "HDL simulation": "HDL 仿真",
-  testbench: "Testbench（测试台）",
-  "FPGA constraints": "FPGA 约束",
-  "IP cores": "IP 核",
-  // PLC / industrial (Codesys, TwinCAT)
-  // Generic
-  "datasets / fixtures": "数据集 / fixtures",
-  "Python code": "Python 代码",
-  // MATLAB / algorithm work
-  "MATLAB code": "MATLAB 代码",
-  "Octave code": "Octave 代码",
-  "Simulink models": "Simulink 模型",
-  "algorithm implementations": "算法实现",
-  "Jupyter / interactive notebooks": "Jupyter / 交互式 notebook",
-  notebooks: "notebook",
-  "math derivations": "数学推导",
-  "golden reference data": "黄金参考数据",
-  "baseline data": "基线数据",
-  "captured experiment data": "实验采集数据",
-  "experiment recordings": "实验录制",
-  // WordPress / non-developer website
-  "WordPress core (DO NOT EDIT)": "WordPress 核心（千万别动）",
-  "WordPress content (themes, plugins, uploads)": "WordPress 内容（主题 / 插件 / 上传）",
-  "site themes": "站点主题",
-  "site plugins": "站点插件",
-  "user uploads": "用户上传文件",
-  // PLC / industrial (Codesys, TwinCAT)
-  "PLC programs": "PLC 程序",
-  "PLC POUs": "POU（程序组织单元）",
-  "PLC global variables": "全局变量（GVL）",
-  "PLC function blocks": "功能块（FB）",
-  "PLC functions": "函数（FC）",
-  "PLC data types (DUT)": "数据类型（DUT）",
-  "Codesys visualizations": "Codesys 可视化界面",
-  "library references": "库引用",
-};
-
-const PURPOSE_UNCLEAR_ZH = "用途待补充";
-
-type LabelContext = "ai" | "embedded" | "web" | "general";
-
-// `components/` and `tools/` have different meanings depending on the project.
-// In an AI app, `tools/` is LLM tool definitions; in an embedded firmware,
-// `components/` is hardware modules, not React UI.
-const CONTEXTUAL_ROLE_ZH: Record<LabelContext, Record<string, string>> = {
-  ai: {
-    "UI components": "组件",
-    tooling: "LLM 工具定义",
-  },
-  embedded: {
-    "UI components": "硬件 / 驱动组件",
-    tooling: "工具",
-  },
-  web: {},
-  general: {},
-};
-
-function projectContext(stacks: { language: string; framework?: string }[]): LabelContext {
-  for (const s of stacks) {
-    const fw = s.framework ?? "";
-    if (/anthropic|openai|langchain|llamaindex|vercel ai|claude|gemini|mcp/i.test(fw)) return "ai";
-    if (/esp-idf|arduino|zephyr|mbed|platformio|vivado|quartus|twincat|codesys/i.test(fw)) return "embedded";
-    if (s.language === "C/C++" || s.language === "VHDL" || s.language === "Verilog" || s.language === "SystemVerilog" || s.language === "VHDL / Verilog" || s.language === "IEC 61131-3") return "embedded";
-    if (/next|react|vue|svelte|express|fastify|nest/i.test(fw)) return "web";
-  }
-  return "general";
-}
-
-function zhRoleCtx(role: string | undefined, ctx: LabelContext): string {
-  if (!role) return PURPOSE_UNCLEAR_ZH;
-  return CONTEXTUAL_ROLE_ZH[ctx][role] ?? ROLE_ZH[role] ?? role;
-}
-
-// Back-compat: existing call sites that don't have context use general.
-function zhRole(role: string | undefined): string {
-  return zhRoleCtx(role, "general");
+// Dir hints from the scanner are already in Chinese (set in filetree.ts and
+// skill dirHints). Fall back to "用途待补充" for unknown directories.
+function dirRole(role: string | undefined): string {
+  return role ?? "用途待补充";
 }
 
 function fileCountZh(n: number): string {
@@ -169,119 +35,54 @@ function relTime(days: number): string {
   return `${(days / 365).toFixed(1)} year(s) ago`;
 }
 
-// "Minimal" projects (handful of files, no nested structure) get a much
-// simpler PROJECT.md — without the lint-rules / banned-APIs / performance-
-// budgets vocabulary that scares non-technical users. Triggers for:
-// tutorials, kid coding, scratch notebooks, single-file scripts.
-// We deliberately don't gate on stack detection — a kid with two .py files
-// gets detected as "Python (scripts)" yet still wants the simple template.
+// Minimal projects (no nested dirs, ≤ 8 files, no real framework) get a
+// simpler template — git stats and lint-rule sections are not useful for
+// tutorial or beginner projects with no history.
 function isMinimalProject(scan: ProjectScan): boolean {
   if (scan.topDirs.length > 0) return false;
   if (scan.totalFiles > 8) return false;
-  // Project with a real framework (Next.js, Laravel, ESP-IDF…) is not minimal,
-  // even if it happens to have few files.
   const realFramework = scan.stacks.some((s) => s.framework && s.framework !== "scripts");
   return !realFramework;
-}
-
-function renderKidProjectMd(opts: { projectName: string; scan: ProjectScan }): string {
-  const { projectName, scan } = opts;
-  return `# ${projectName}
-
-${DRAFT_BANNER}
-
-## 这个项目是关于什么的？
-
-_用一两句话说说你在做什么 —— 想做的小游戏？要写的作业？随便聊聊都行。_
-
-## 我的文件
-
-- 一共 ${scan.totalFiles} 个文件${scan.topDirs.length === 0 ? "，都在这一个文件夹里" : ""}
-
-## 我想记住的事
-
-_想到什么重要的、容易忘的、做错过的事，都可以记在这里。_
-_或者直接在命令行里跑：\`duoshe remember "..."\`_
-
-- ...
-
----
-
-_由 DuoShe 于 ${scan.scannedAt} 生成。想搜东西：\`duoshe search "<关键词>"\`_
-`;
-}
-
-function renderNonDevSiteMd(opts: { projectName: string; scan: ProjectScan }): string {
-  const { projectName, scan } = opts;
-  const ctx = projectContext(scan.stacks);
-  const dirs = scan.topDirs.map(
-    (d) => `- \`${d.name}/\` — ${zhRoleCtx(d.guessedRole, ctx)}（${fileCountZh(d.fileCount)}）`,
-  );
-  return `# ${projectName}
-
-${DRAFT_BANNER}
-
-## 这个网站是做什么的？
-
-_用一两句话说说：什么业务？给谁看？域名是什么？_
-
-## 重要信息（最容易忘的）
-
-> 记下来才不会到时候找不到。
-
-- **域名**：_(在哪买的？什么时候到期？)_
-- **SSL 证书**：_(谁签发的？什么时候续？放在哪个目录？)_
-- **服务器 / 云主机**：_(百度云？阿里云？腾讯云？IP / 实例 ID？)_
-- **后台账号**：_(用户名是什么？密码在哪里？)_
-- **FTP / SSH 登录**：_(地址 / 端口 / 凭证存放位置)_
-- **备份策略**：_(多久备份一次？备份放在哪？)_
-
-## ⚠️ 千万不要动的目录
-
-_有些文件夹是系统核心，动了网站就崩了。_
-
-${dirs.length > 0 ? dirs.join("\n") : "_(等扫描完整后会自动填充)_"}
-
-## 已经做过的折腾（避免下次重复）
-
-_装过哪些插件？踩过哪些坑？为什么用这个主题？_
-
-- ...
-
----
-
-_由 DuoShe 于 ${scan.scannedAt} 生成。想搜东西：\`duoshe search "<关键词>"\`_
-`;
 }
 
 export function renderProjectMd(opts: {
   projectName: string;
   scan: ProjectScan;
   git: GitInsights;
-  profile?: ProjectProfile;
 }): string {
-  // Profile-driven variants. Each one is targeted at a specific user shape:
-  // kid → friendly minimal, non_dev_site → forbidden-zones / domain-ops focus.
-  // Other profiles (algo / embedded / ai_app / general) currently use the
-  // regular template; their differentiation is via projectContext-driven
-  // directory labels and contextual zhRole. Extra profile-specific sections
-  // for those can be added without changing this router.
-  if (opts.profile === "kid" || isMinimalProject(opts.scan)) {
-    return renderKidProjectMd({ projectName: opts.projectName, scan: opts.scan });
-  }
-  if (opts.profile === "non_dev_site") {
-    return renderNonDevSiteMd({ projectName: opts.projectName, scan: opts.scan });
-  }
   const { projectName, scan, git } = opts;
+
+  if (isMinimalProject(scan)) {
+    return `# ${projectName}
+
+${DRAFT_BANNER}
+
+## 这个项目是关于什么的？
+
+_用一两句话说说你在做什么。_
+
+## 文件
+
+- 共 ${scan.totalFiles} 个文件${scan.topDirs.length === 0 ? "，都在根目录" : ""}
+
+## 重要的事
+
+_想到什么重要的、容易忘的事，记在这里。或者用 \`duoshe remember "..."\`_
+
+---
+
+_由 DuoShe 于 ${scan.scannedAt} 生成。_
+`;
+  }
+
   const stacks = scan.stacks.map(
     (s) =>
       `**${s.language}**${s.framework ? `（${s.framework}）` : ""}` +
       `${s.packageManager ? ` — 包管理器：\`${s.packageManager}\`` : ""}` +
       ` — 配置文件：\`${s.manifestFile}\``,
   );
-  const ctx = projectContext(scan.stacks);
   const dirs = scan.topDirs.map(
-    (d) => `\`${d.name}/\` — ${zhRoleCtx(d.guessedRole, ctx)}（${fileCountZh(d.fileCount)}）`,
+    (d) => `\`${d.name}/\` — ${dirRole(d.guessedRole)}（${fileCountZh(d.fileCount)}）`,
   );
   const entryKindZh: Record<string, string> = {
     main: "主入口",
@@ -377,9 +178,8 @@ export function renderCodeMapMd(opts: {
   const entryLines = scan.entryPoints.map(
     (e) => `\`${e.path}\`（${codeEntryKindZh[e.kind] ?? e.kind}）`,
   );
-  const ctx = projectContext(scan.stacks);
   const dirLines = scan.topDirs.map(
-    (d) => `| \`${d.name}/\` | ${zhRoleCtx(d.guessedRole, ctx)} | ${d.fileCount} |`,
+    (d) => `| \`${d.name}/\` | ${dirRole(d.guessedRole)} | ${d.fileCount} |`,
   );
   const hotLines =
     git.hotFiles?.map((f) => `\`${f.path}\` — 最近 30 天有 ${f.commits} 次提交`) ?? [];
@@ -481,11 +281,10 @@ _(暂无踩坑记录)_
 }
 
 export function renderModulesMd(opts: { scan: ProjectScan }): string {
-  const ctx = projectContext(opts.scan.stacks);
   const dirs = opts.scan.topDirs.map(
     (d) =>
       `### \`${d.name}/\`\n\n` +
-      `**作用：** ${d.guessedRole ? zhRoleCtx(d.guessedRole, ctx) : "_暂不明确，请补充_"}\n\n` +
+      `**作用：** ${d.guessedRole ?? "_暂不明确，请补充_"}\n\n` +
       `**负责：** _(这个模块负责什么？)_\n\n` +
       `**不负责：** _(什么绝对不该放在这里？)_\n\n` +
       `**依赖：** _(内部 / 外部依赖)_\n`,
