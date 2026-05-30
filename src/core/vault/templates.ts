@@ -71,6 +71,28 @@ const ROLE_ZH: Record<string, string> = {
   "FPGA constraints": "FPGA 约束",
   "IP cores": "IP 核",
   // PLC / industrial (Codesys, TwinCAT)
+  // Generic
+  "datasets / fixtures": "数据集 / fixtures",
+  "Python code": "Python 代码",
+  // MATLAB / algorithm work
+  "MATLAB code": "MATLAB 代码",
+  "Octave code": "Octave 代码",
+  "Simulink models": "Simulink 模型",
+  "algorithm implementations": "算法实现",
+  "Jupyter / interactive notebooks": "Jupyter / 交互式 notebook",
+  notebooks: "notebook",
+  "math derivations": "数学推导",
+  "golden reference data": "黄金参考数据",
+  "baseline data": "基线数据",
+  "captured experiment data": "实验采集数据",
+  "experiment recordings": "实验录制",
+  // WordPress / non-developer website
+  "WordPress core (DO NOT EDIT)": "WordPress 核心（千万别动）",
+  "WordPress content (themes, plugins, uploads)": "WordPress 内容（主题 / 插件 / 上传）",
+  "site themes": "站点主题",
+  "site plugins": "站点插件",
+  "user uploads": "用户上传文件",
+  // PLC / industrial (Codesys, TwinCAT)
   "PLC programs": "PLC 程序",
   "PLC POUs": "POU（程序组织单元）",
   "PLC global variables": "全局变量（GVL）",
@@ -147,11 +169,56 @@ function relTime(days: number): string {
   return `${(days / 365).toFixed(1)} year(s) ago`;
 }
 
+// "Minimal" projects (handful of files, no nested structure) get a much
+// simpler PROJECT.md — without the lint-rules / banned-APIs / performance-
+// budgets vocabulary that scares non-technical users. Triggers for:
+// tutorials, kid coding, scratch notebooks, single-file scripts.
+// We deliberately don't gate on stack detection — a kid with two .py files
+// gets detected as "Python (scripts)" yet still wants the simple template.
+function isMinimalProject(scan: ProjectScan): boolean {
+  if (scan.topDirs.length > 0) return false;
+  if (scan.totalFiles > 8) return false;
+  // Project with a real framework (Next.js, Laravel, ESP-IDF…) is not minimal,
+  // even if it happens to have few files.
+  const realFramework = scan.stacks.some((s) => s.framework && s.framework !== "scripts");
+  return !realFramework;
+}
+
+function renderMinimalProjectMd(opts: { projectName: string; scan: ProjectScan }): string {
+  const { projectName, scan } = opts;
+  return `# ${projectName}
+
+${DRAFT_BANNER}
+
+## 这个项目是关于什么的？
+
+_用一两句话说说你在做什么 —— 想做的小游戏？要写的作业？随便聊聊都行。_
+
+## 我的文件
+
+- 一共 ${scan.totalFiles} 个文件，都在这一个文件夹里
+
+## 我想记住的事
+
+_想到什么重要的、容易忘的、做错过的事，都可以记在这里。_
+_或者直接在命令行里跑：\`duoshe remember "..."\`_
+
+- ...
+
+---
+
+_由 DuoShe 于 ${scan.scannedAt} 生成。想搜东西：\`duoshe search "<关键词>"\`_
+`;
+}
+
 export function renderProjectMd(opts: {
   projectName: string;
   scan: ProjectScan;
   git: GitInsights;
 }): string {
+  if (isMinimalProject(opts.scan)) {
+    return renderMinimalProjectMd({ projectName: opts.projectName, scan: opts.scan });
+  }
   const { projectName, scan, git } = opts;
   const stacks = scan.stacks.map(
     (s) =>

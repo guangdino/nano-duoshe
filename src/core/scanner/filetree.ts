@@ -51,6 +51,11 @@ const SOURCE_EXTS = new Set([
   ".v", ".sv", ".svh",
   // IEC 61131-3 — PLC structured text and friends
   ".st", ".scl", ".iec",
+  // MATLAB / Simulink — .m already covered (as Obj-C overlap)
+  ".mlx",          // MATLAB Live Script (XML)
+  ".slx", ".mdl",  // Simulink models (binary but THE source asset)
+  // Scratch (kids learning to code) — binary but it IS their code
+  ".sb3", ".sb2",
 ]);
 
 const DIR_ROLE_HINTS: Record<string, string> = {
@@ -135,6 +140,31 @@ const DIR_ROLE_HINTS: Record<string, string> = {
   tb: "testbench",
   constraints: "FPGA constraints",
   ip: "IP cores",
+  // Generic but useful
+  data: "datasets / fixtures",
+  python: "Python code",
+  // MATLAB / control-algorithm work
+  matlab: "MATLAB code",
+  octave: "Octave code",
+  simulink: "Simulink models",
+  algorithms: "algorithm implementations",
+  algorithm: "algorithm implementations",
+  algo: "algorithm implementations",
+  notebooks: "Jupyter / interactive notebooks",
+  nb: "notebooks",
+  derivations: "math derivations",
+  derivation: "math derivations",
+  golden: "golden reference data",
+  baselines: "baseline data",
+  captures: "captured experiment data",
+  recordings: "experiment recordings",
+  // WordPress / non-developer website
+  "wp-admin": "WordPress core (DO NOT EDIT)",
+  "wp-includes": "WordPress core (DO NOT EDIT)",
+  "wp-content": "WordPress content (themes, plugins, uploads)",
+  themes: "site themes",
+  plugins: "site plugins",
+  uploads: "user uploads",
   // PLC / industrial (Codesys, TwinCAT)
   plc: "PLC programs",
   pou: "PLC POUs",

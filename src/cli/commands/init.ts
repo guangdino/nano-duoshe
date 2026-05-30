@@ -69,7 +69,11 @@ async function runInit(opts: InitOptions): Promise<void> {
   } else {
     log.info("没识别出常见技术栈（不影响使用，duoshe 仍能记录决策和踩坑）");
   }
-  log.ok(`遍历了 ${scan.totalFiles} 个文件（${scan.totalSourceFiles} 个源码文件），跨 ${scan.topDirs.length} 个顶层目录`);
+  if (scan.topDirs.length === 0) {
+    log.ok(`遍历了 ${scan.totalFiles} 个文件（${scan.totalSourceFiles} 个源码文件），文件都在根目录`);
+  } else {
+    log.ok(`遍历了 ${scan.totalFiles} 个文件（${scan.totalSourceFiles} 个源码文件），跨 ${scan.topDirs.length} 个顶层目录`);
+  }
   if (git.isGitRepo) {
     log.ok(`git 仓库：${git.hotFiles?.length ?? 0} 个热点文件，${git.contributorCount ?? "?"} 位贡献者`);
   } else {

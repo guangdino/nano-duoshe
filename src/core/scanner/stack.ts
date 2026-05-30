@@ -157,6 +157,23 @@ function detectPython(root: string): Stack | null {
     if (pm !== undefined) stack.packageManager = pm;
     return stack;
   }
+
+  // Fallback: bare Python scripts with no manifest. Common with beginners,
+  // students, data exploration, and one-off automation. Recognize when there
+  // are at least 2 .py files anywhere in the first level.
+  try {
+    const entries = readdirSync(root);
+    const rootPy = entries.filter((e) => e.endsWith(".py"));
+    if (rootPy.length >= 2) {
+      return {
+        language: "Python",
+        manifestFile: rootPy[0]!,
+        framework: "scripts",
+      };
+    }
+  } catch {
+    // ignore
+  }
   return null;
 }
 
@@ -212,6 +229,75 @@ function detectGo(root: string): Stack | null {
 
 function hasScopedDep(deps: Record<string, string>, prefix: string): boolean {
   return Object.keys(deps).some((k) => k.startsWith(prefix));
+}
+
+// MATLAB / Octave: no standard manifest. Use strong signals:
+// - .slx / .mdl (Simulink models — unambiguous)
+// - .mlx (MATLAB Live Scripts — unambiguous)
+// - matlab/ subdir
+// - >=3 .m files at root or in matlab/ (more than typical Objective-C top-level)
+function detectMatlab(root: string): Stack | null {
+  // Strong signals first.
+  let entries: string[];
+  try {
+    entries = readdirSync(root);
+  } catch {
+    return null;
+  }
+  const hasSimulink =
+    entries.some((e) => e.endsWith(".slx") || e.endsWith(".mdl")) ||
+    findFirstByExt(join(root, "matlab"), [".slx", ".mdl"], 2);
+  const hasLiveScript =
+    entries.some((e) => e.endsWith(".mlx")) || findFirstByExt(join(root, "matlab"), [".mlx"], 2);
+  const matlabDirExists = existsSync(join(root, "matlab"));
+
+  if (hasSimulink) {
+    const manifest =
+      entries.find((e) => e.endsWith(".slx") || e.endsWith(".mdl")) ??
+      findFirstByExt(join(root, "matlab"), [".slx", ".mdl"], 2);
+    return {
+      language: "MATLAB",
+      manifestFile: manifest ?? "(Simulink models)",
+      framework: "Simulink",
+    };
+  }
+  if (hasLiveScript || matlabDirExists) {
+    return { language: "MATLAB", manifestFile: matlabDirExists ? "matlab/" : "(MATLAB scripts)" };
+  }
+
+  // Weaker signal: >=3 .m files at root. Risks confusion with Objective-C, but
+  // ObjC projects typically have .xcodeproj / Podfile (caught by detectDotNet
+  // or just left undetected) — a bare repo of .m files is much more likely
+  // MATLAB in practice.
+  const mFiles = entries.filter((e) => e.endsWith(".m"));
+  if (mFiles.length >= 3) {
+    return { language: "MATLAB", manifestFile: mFiles[0]! };
+  }
+  return null;
+}
+
+function findFirstByExt(dir: string, exts: string[], maxDepth: number): string | null {
+  if (maxDepth < 0) return null;
+  let entries: string[];
+  try {
+    entries = readdirSync(dir);
+  } catch {
+    return null;
+  }
+  for (const name of entries) {
+    if (exts.some((e) => name.toLowerCase().endsWith(e))) return name;
+  }
+  for (const name of entries) {
+    const sub = join(dir, name);
+    try {
+      if (readdirSync(sub).length === 0) continue;
+    } catch {
+      continue;
+    }
+    const found = findFirstByExt(sub, exts, maxDepth - 1);
+    if (found) return `${name}/${found}`;
+  }
+  return null;
 }
 
 function detectEmbedded(root: string): Stack | null {
@@ -528,6 +614,7 @@ export function detectStacks(root: string): Stack[] {
     detectGo,
     detectRust,
     detectPhp,
+    detectMatlab,
     detectEmbedded,
     detectFpga,
     detectPlc,
