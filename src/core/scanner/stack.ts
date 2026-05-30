@@ -86,14 +86,23 @@ function detectNpm(root: string): Stack | null {
 
   const deps = { ...(pkg.dependencies ?? {}), ...(pkg.devDependencies ?? {}) };
   let framework: string | undefined;
-  if (deps.next) framework = "Next.js";
+  // AI / agent stacks take priority — they're a strong signal about what the
+  // project is *for*, more so than the host web framework. Check them first.
+  if (deps["@anthropic-ai/sdk"]) framework = "Anthropic Claude";
+  else if (deps["@openai/agents"] || deps.openai) framework = "OpenAI";
+  else if (deps["@google/genai"] || deps["@google/generative-ai"]) framework = "Google Gemini";
+  else if (deps.langchain || hasScopedDep(deps, "@langchain/")) framework = "LangChain";
+  else if (deps.llamaindex || hasScopedDep(deps, "@llamaindex/")) framework = "LlamaIndex";
+  else if (deps.ai || hasScopedDep(deps, "@ai-sdk/")) framework = "Vercel AI SDK";
+  else if (deps["@modelcontextprotocol/sdk"]) framework = "MCP server";
+  // Otherwise pick the web framework signal.
+  else if (deps.next) framework = "Next.js";
   else if (deps["@nestjs/core"]) framework = "NestJS";
   else if (deps.react) framework = "React";
   else if (deps.vue) framework = "Vue";
   else if (deps.svelte) framework = "Svelte";
   else if (deps.express) framework = "Express";
   else if (deps.fastify) framework = "Fastify";
-  else if (deps["@modelcontextprotocol/sdk"]) framework = "MCP server";
 
   // Workspace-style monorepos often have tsconfig only inside packages, not at root.
   const hasWorkspaceTs = Array.isArray(pkg.workspaces) && workspacesContainTsconfig(root, pkg.workspaces);
@@ -199,6 +208,183 @@ function detectGo(root: string): Stack | null {
   const stack: Stack = { language: "Go", manifestFile: "go.mod", packageManager: "go modules" };
   if (rawName !== undefined) stack.rawName = rawName;
   return stack;
+}
+
+function hasScopedDep(deps: Record<string, string>, prefix: string): boolean {
+  return Object.keys(deps).some((k) => k.startsWith(prefix));
+}
+
+function detectEmbedded(root: string): Stack | null {
+  // PlatformIO is the strongest signal — it tells us this is firmware
+  // regardless of which framework is configured inside.
+  const hasPlatformio = existsSync(join(root, "platformio.ini"));
+  if (hasPlatformio) {
+    let framework: string | undefined;
+    try {
+      const ini = readFileSync(join(root, "platformio.ini"), "utf8");
+      const m = ini.match(/^\s*framework\s*=\s*(\w+)/m);
+      if (m) {
+        const fw = m[1]!.toLowerCase();
+        if (fw === "espidf") framework = "ESP-IDF";
+        else if (fw === "arduino") framework = "Arduino";
+        else if (fw === "zephyr") framework = "Zephyr";
+        else if (fw === "mbed") framework = "Mbed OS";
+        else framework = m[1];
+      }
+    } catch {
+      // ignore — still report PlatformIO without specific framework
+    }
+    const stack: Stack = {
+      language: "C/C++",
+      manifestFile: "platformio.ini",
+      packageManager: "PlatformIO",
+    };
+    if (framework) stack.framework = framework;
+    return stack;
+  }
+
+  // ESP-IDF: sdkconfig + root CMakeLists.txt is the canonical layout.
+  const hasSdkconfig = existsSync(join(root, "sdkconfig")) || existsSync(join(root, "sdkconfig.defaults"));
+  const rootCMake = join(root, "CMakeLists.txt");
+  const hasCMake = existsSync(rootCMake);
+  if (hasSdkconfig && hasCMake) {
+    return {
+      language: "C/C++",
+      manifestFile: "CMakeLists.txt",
+      framework: "ESP-IDF",
+      packageManager: "ESP-IDF",
+    };
+  }
+  // Zephyr: west.yml at root or Zephyr-specific build files.
+  if (existsSync(join(root, "west.yml")) || existsSync(join(root, "prj.conf"))) {
+    return {
+      language: "C/C++",
+      manifestFile: existsSync(join(root, "west.yml")) ? "west.yml" : "prj.conf",
+      framework: "Zephyr",
+    };
+  }
+  // Arduino sketch: any .ino file in root or src/.
+  try {
+    const rootEntries = readdirSync(root);
+    const ino = rootEntries.find((e) => e.endsWith(".ino"));
+    if (ino) {
+      return { language: "C/C++", manifestFile: ino, framework: "Arduino" };
+    }
+  } catch {
+    // ignore
+  }
+  // Bare CMake: root CMakeLists.txt with a project() call.
+  if (hasCMake) {
+    try {
+      const txt = readFileSync(rootCMake, "utf8");
+      if (/^\s*project\s*\(/im.test(txt)) {
+        return { language: "C/C++", manifestFile: "CMakeLists.txt", packageManager: "CMake" };
+      }
+    } catch {
+      // ignore
+    }
+  }
+  // Plain Makefile: root Makefile with .c files anywhere — lowest priority.
+  if (existsSync(join(root, "Makefile"))) {
+    try {
+      const rootEntries = readdirSync(root);
+      if (rootEntries.some((e) => e.endsWith(".c") || e.endsWith(".cpp") || e.endsWith(".cc"))) {
+        return { language: "C/C++", manifestFile: "Makefile", packageManager: "make" };
+      }
+    } catch {
+      // ignore
+    }
+  }
+  return null;
+}
+
+function detectFpga(root: string): Stack | null {
+  // Walk a couple of common directories looking for HDL files or vendor project files.
+  // Industrial / FPGA repos rarely keep these at root.
+  const probe = (dir: string): Stack | null => {
+    let entries: string[];
+    try {
+      entries = readdirSync(dir);
+    } catch {
+      return null;
+    }
+    // Xilinx Vivado project (.xpr) or Quartus (.qpf/.qsf)
+    const xpr = entries.find((e) => e.endsWith(".xpr"));
+    if (xpr) {
+      return { language: "VHDL / Verilog", manifestFile: xpr, framework: "Vivado", packageManager: "Vivado" };
+    }
+    const qpf = entries.find((e) => e.endsWith(".qpf") || e.endsWith(".qsf"));
+    if (qpf) {
+      return { language: "VHDL / Verilog", manifestFile: qpf, framework: "Quartus", packageManager: "Quartus" };
+    }
+    // Bare HDL: any .vhd / .v / .sv at the root of the probed dir
+    const hdl = entries.find((e) => /\.(vhdl?|sv|svh)$/i.test(e)) ?? entries.find((e) => e.endsWith(".v"));
+    if (hdl) {
+      const lang = hdl.endsWith(".vhd") || hdl.endsWith(".vhdl") ? "VHDL" : hdl.endsWith(".sv") || hdl.endsWith(".svh") ? "SystemVerilog" : "Verilog";
+      return { language: lang, manifestFile: hdl };
+    }
+    return null;
+  };
+  // Root first, then common subdirs (rtl/, hdl/, src/).
+  for (const subdir of ["", "rtl", "hdl", "src", "sources"]) {
+    const dir = subdir ? join(root, subdir) : root;
+    const found = probe(dir);
+    if (found) {
+      if (subdir) found.manifestFile = `${subdir}/${found.manifestFile}`;
+      return found;
+    }
+  }
+  return null;
+}
+
+function detectPlc(root: string): Stack | null {
+  // TwinCAT 3 project files
+  try {
+    const entries = readdirSync(root);
+    const tspproj = entries.find((e) => e.endsWith(".tspproj") || e.endsWith(".tsproj"));
+    if (tspproj) {
+      return { language: "IEC 61131-3", manifestFile: tspproj, framework: "TwinCAT" };
+    }
+    const plcproj = entries.find((e) => e.endsWith(".plcproj"));
+    if (plcproj) {
+      return { language: "IEC 61131-3", manifestFile: plcproj, framework: "TwinCAT" };
+    }
+    // Codesys / generic PLC: .project file + .st/.scl files anywhere
+    const codesysProj = entries.find((e) => e.endsWith(".project") || e.endsWith(".library"));
+    if (codesysProj && hasAnyExtRecursive(root, [".st", ".scl"], 2)) {
+      return { language: "IEC 61131-3", manifestFile: codesysProj, framework: "Codesys" };
+    }
+    // Bare PLC: any .st file at root or 1 level deep
+    if (hasAnyExtRecursive(root, [".st", ".scl", ".iec"], 1)) {
+      return { language: "IEC 61131-3", manifestFile: "(structured text)" };
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+function hasAnyExtRecursive(dir: string, exts: string[], maxDepth: number): boolean {
+  if (maxDepth < 0) return false;
+  let entries: string[];
+  try {
+    entries = readdirSync(dir);
+  } catch {
+    return false;
+  }
+  for (const name of entries) {
+    const lower = name.toLowerCase();
+    if (exts.some((e) => lower.endsWith(e))) return true;
+  }
+  for (const name of entries) {
+    const sub = join(dir, name);
+    try {
+      if (readdirSync(sub).length > 0 && hasAnyExtRecursive(sub, exts, maxDepth - 1)) return true;
+    } catch {
+      continue;
+    }
+  }
+  return false;
 }
 
 function detectPhp(root: string): Stack | null {
@@ -342,6 +528,9 @@ export function detectStacks(root: string): Stack[] {
     detectGo,
     detectRust,
     detectPhp,
+    detectEmbedded,
+    detectFpga,
+    detectPlc,
     detectTerraform,
     detectAnsible,
     detectDocker,

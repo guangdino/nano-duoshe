@@ -49,7 +49,7 @@ async function runGraph(opts: GraphOptions): Promise<void> {
   if (analysis.files.length === 0) {
     log.warn("没扫描到任何源码文件。");
     log.raw(kleur.gray("  当前 graph 技能只支持 JavaScript / TypeScript（.ts/.tsx/.js/.jsx/.mjs/.cjs）。"));
-    log.raw(kleur.gray("  其他语言（Go / Python / Rust / Terraform 等）的依赖分析还在路上。"));
+    log.raw(kleur.gray("  其他语言（Go / Python / Rust / C/C++ / VHDL / Verilog / Terraform 等）的依赖分析还在路上。"));
     return;
   }
 

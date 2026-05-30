@@ -44,6 +44,13 @@ const SOURCE_EXTS = new Set([
   ".lua", ".dart", ".ex", ".exs",
   ".sql",
   ".tf", ".tfvars",
+  // Embedded / firmware
+  ".ino",
+  // HDL — FPGA / ASIC
+  ".vhd", ".vhdl",
+  ".v", ".sv", ".svh",
+  // IEC 61131-3 — PLC structured text and friends
+  ".st", ".scl", ".iec",
 ]);
 
 const DIR_ROLE_HINTS: Record<string, string> = {
@@ -87,11 +94,13 @@ const DIR_ROLE_HINTS: Record<string, string> = {
   helpers: "helpers",
   types: "type definitions",
   hooks: "hooks",
-  middleware: "middleware",
+  middleware: "middleware libraries",
   vendor: "vendored dependencies",
   third_party: "third-party code",
   ".github": "GitHub workflows/config",
   ".claude": "Claude Code settings",
+
+  // ─── domain-specific (overrides above) ─────────────────────────────────────
   terraform: "infrastructure (Terraform)",
   tf: "infrastructure (Terraform)",
   infra: "infrastructure (Terraform)",
@@ -99,6 +108,47 @@ const DIR_ROLE_HINTS: Record<string, string> = {
   playbooks: "infrastructure (Ansible)",
   roles: "Ansible roles",
   docker: "container images",
+  // AI / agent
+  prompts: "AI prompts",
+  prompt: "AI prompts",
+  eval: "evaluations",
+  evals: "evaluations",
+  agents: "agent definitions",
+  // Embedded firmware (C / C++)
+  main: "firmware entry",
+  drivers: "drivers",
+  driver: "drivers",
+  bsp: "board support package",
+  hal: "hardware abstraction",
+  freertos: "RTOS",
+  inc: "C header files",
+  include: "C header files",
+  includes: "C header files",
+  startup: "startup / boot code",
+  boot: "startup / boot code",
+  cmsis: "CMSIS (Cortex-M)",
+  middlewares: "middleware libraries",
+  // HDL / FPGA
+  rtl: "RTL (HDL sources)",
+  hdl: "HDL sources",
+  sim: "HDL simulation",
+  tb: "testbench",
+  constraints: "FPGA constraints",
+  ip: "IP cores",
+  // PLC / industrial (Codesys, TwinCAT)
+  plc: "PLC programs",
+  pou: "PLC POUs",
+  pous: "PLC POUs",
+  programs: "PLC programs",
+  functionblocks: "PLC function blocks",
+  functions: "PLC functions",
+  gvl: "PLC global variables",
+  fb: "PLC function blocks",
+  dut: "PLC data types (DUT)",
+  duts: "PLC data types (DUT)",
+  visualizations: "Codesys visualizations",
+  visus: "Codesys visualizations",
+  libraries: "library references",
 };
 
 const ENTRY_PATTERNS: { pattern: RegExp; kind: EntryPoint["kind"] }[] = [
@@ -117,6 +167,12 @@ const ENTRY_PATTERNS: { pattern: RegExp; kind: EntryPoint["kind"] }[] = [
   { pattern: /^index\.php$/i, kind: "main" },
   { pattern: /^app\.php$/i, kind: "main" },
   { pattern: /^artisan$/i, kind: "main" },
+  { pattern: /^main\.(c|cc|cpp|cxx)$/i, kind: "main" },
+  { pattern: /^main\.ino$/i, kind: "main" },
+  // FPGA — top-level module convention is top.{vhd,v,sv} or top_level.{vhd,v,sv}
+  { pattern: /^top(_level)?\.(vhd|vhdl|v|sv)$/i, kind: "main" },
+  // PLC — Codesys / IEC 61131-3 program named MAIN is the cyclic task entry
+  { pattern: /^main\.st$/i, kind: "main" },
 ];
 
 const TIME_BUDGET_MS = 30_000;

@@ -49,13 +49,77 @@ const ROLE_ZH: Record<string, string> = {
   "infrastructure (Terraform)": "基础设施（Terraform）",
   "infrastructure (Ansible)": "基础设施（Ansible）",
   "container images": "容器镜像",
+  // AI / agent
+  "AI prompts": "Prompt 模板",
+  evaluations: "评测集",
+  "agent definitions": "Agent 定义",
+  // Embedded firmware (C / C++)
+  "firmware entry": "固件入口",
+  drivers: "驱动",
+  "board support package": "板级支持包（BSP）",
+  "hardware abstraction": "硬件抽象层",
+  RTOS: "实时操作系统",
+  "C header files": "C 头文件",
+  "startup / boot code": "启动 / 引导代码",
+  "CMSIS (Cortex-M)": "CMSIS（Cortex-M 标准库）",
+  "middleware libraries": "中间件库（HAL/RTOS）",
+  // HDL / FPGA
+  "RTL (HDL sources)": "RTL（HDL 源码）",
+  "HDL sources": "HDL 源码",
+  "HDL simulation": "HDL 仿真",
+  testbench: "Testbench（测试台）",
+  "FPGA constraints": "FPGA 约束",
+  "IP cores": "IP 核",
+  // PLC / industrial (Codesys, TwinCAT)
+  "PLC programs": "PLC 程序",
+  "PLC POUs": "POU（程序组织单元）",
+  "PLC global variables": "全局变量（GVL）",
+  "PLC function blocks": "功能块（FB）",
+  "PLC functions": "函数（FC）",
+  "PLC data types (DUT)": "数据类型（DUT）",
+  "Codesys visualizations": "Codesys 可视化界面",
+  "library references": "库引用",
 };
 
 const PURPOSE_UNCLEAR_ZH = "用途待补充";
 
-function zhRole(role: string | undefined): string {
+type LabelContext = "ai" | "embedded" | "web" | "general";
+
+// `components/` and `tools/` have different meanings depending on the project.
+// In an AI app, `tools/` is LLM tool definitions; in an embedded firmware,
+// `components/` is hardware modules, not React UI.
+const CONTEXTUAL_ROLE_ZH: Record<LabelContext, Record<string, string>> = {
+  ai: {
+    "UI components": "组件",
+    tooling: "LLM 工具定义",
+  },
+  embedded: {
+    "UI components": "硬件 / 驱动组件",
+    tooling: "工具",
+  },
+  web: {},
+  general: {},
+};
+
+function projectContext(stacks: { language: string; framework?: string }[]): LabelContext {
+  for (const s of stacks) {
+    const fw = s.framework ?? "";
+    if (/anthropic|openai|langchain|llamaindex|vercel ai|claude|gemini|mcp/i.test(fw)) return "ai";
+    if (/esp-idf|arduino|zephyr|mbed|platformio|vivado|quartus|twincat|codesys/i.test(fw)) return "embedded";
+    if (s.language === "C/C++" || s.language === "VHDL" || s.language === "Verilog" || s.language === "SystemVerilog" || s.language === "VHDL / Verilog" || s.language === "IEC 61131-3") return "embedded";
+    if (/next|react|vue|svelte|express|fastify|nest/i.test(fw)) return "web";
+  }
+  return "general";
+}
+
+function zhRoleCtx(role: string | undefined, ctx: LabelContext): string {
   if (!role) return PURPOSE_UNCLEAR_ZH;
-  return ROLE_ZH[role] ?? role;
+  return CONTEXTUAL_ROLE_ZH[ctx][role] ?? ROLE_ZH[role] ?? role;
+}
+
+// Back-compat: existing call sites that don't have context use general.
+function zhRole(role: string | undefined): string {
+  return zhRoleCtx(role, "general");
 }
 
 function fileCountZh(n: number): string {
@@ -95,8 +159,9 @@ export function renderProjectMd(opts: {
       `${s.packageManager ? ` — 包管理器：\`${s.packageManager}\`` : ""}` +
       ` — 配置文件：\`${s.manifestFile}\``,
   );
+  const ctx = projectContext(scan.stacks);
   const dirs = scan.topDirs.map(
-    (d) => `\`${d.name}/\` — ${zhRole(d.guessedRole)}（${fileCountZh(d.fileCount)}）`,
+    (d) => `\`${d.name}/\` — ${zhRoleCtx(d.guessedRole, ctx)}（${fileCountZh(d.fileCount)}）`,
   );
   const entryKindZh: Record<string, string> = {
     main: "主入口",
@@ -192,8 +257,9 @@ export function renderCodeMapMd(opts: {
   const entryLines = scan.entryPoints.map(
     (e) => `\`${e.path}\`（${codeEntryKindZh[e.kind] ?? e.kind}）`,
   );
+  const ctx = projectContext(scan.stacks);
   const dirLines = scan.topDirs.map(
-    (d) => `| \`${d.name}/\` | ${zhRole(d.guessedRole)} | ${d.fileCount} |`,
+    (d) => `| \`${d.name}/\` | ${zhRoleCtx(d.guessedRole, ctx)} | ${d.fileCount} |`,
   );
   const hotLines =
     git.hotFiles?.map((f) => `\`${f.path}\` — 最近 30 天有 ${f.commits} 次提交`) ?? [];
@@ -295,10 +361,11 @@ _(暂无踩坑记录)_
 }
 
 export function renderModulesMd(opts: { scan: ProjectScan }): string {
+  const ctx = projectContext(opts.scan.stacks);
   const dirs = opts.scan.topDirs.map(
     (d) =>
       `### \`${d.name}/\`\n\n` +
-      `**作用：** ${d.guessedRole ? zhRole(d.guessedRole) : "_暂不明确，请补充_"}\n\n` +
+      `**作用：** ${d.guessedRole ? zhRoleCtx(d.guessedRole, ctx) : "_暂不明确，请补充_"}\n\n` +
       `**负责：** _(这个模块负责什么？)_\n\n` +
       `**不负责：** _(什么绝对不该放在这里？)_\n\n` +
       `**依赖：** _(内部 / 外部依赖)_\n`,
