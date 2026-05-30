@@ -354,7 +354,7 @@ duoshe search "..."     # 在项目记忆里搜索（找过去做过的决定、
 还有几个偶尔会用的：
 
 \`\`\`bash
-duoshe guide            # 回答 7 个问题，帮 AI 全面认识这个项目
+duoshe guide            # 回答 3 个核心问题，帮 AI 认识这个项目
 duoshe rescan           # 项目结构变化大了，刷新一下扫描（保留你的修改）
 duoshe upgrade          # 检查 duoshe 自己有没有新版本
 \`\`\`

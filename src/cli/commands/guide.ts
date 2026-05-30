@@ -11,12 +11,8 @@ const END_GUIDE = "<!-- END DUOSHE-GUIDE -->";
 
 type GuideAnswers = {
   overview: string;
-  users: string;
-  inspectFirst: string[];
   conventions: string[];
   gotchas: string[];
-  decisions: string[];
-  nextTasks: string[];
 };
 
 function splitList(answer: string): string[] {
@@ -27,7 +23,7 @@ function splitList(answer: string): string[] {
 }
 
 function bulletList(items: string[]): string {
-  if (items.length === 0) return "- _(not specified)_";
+  if (items.length === 0) return "- _(暂无)_";
   return items.map((item) => `- ${item}`).join("\n");
 }
 
@@ -46,63 +42,23 @@ function upsertGuideSection(path: string, title: string, body: string): void {
 }
 
 function hasUsefulAnswer(a: GuideAnswers): boolean {
-  return Boolean(
-    a.overview ||
-      a.users ||
-      a.inspectFirst.length ||
-      a.conventions.length ||
-      a.gotchas.length ||
-      a.decisions.length ||
-      a.nextTasks.length,
-  );
+  return Boolean(a.overview || a.conventions.length || a.gotchas.length);
 }
 
 function renderProjectGuide(a: GuideAnswers): string {
   return [
-    "### Overview",
+    "### 项目简介",
     "",
-    a.overview || "_Not specified._",
+    a.overview || "_未填写。_",
     "",
-    "### Primary users",
-    "",
-    a.users || "_Not specified._",
-    "",
-    "### Conventions AI agents should remember",
+    "### AI 必须记住的规矩",
     "",
     bulletList(a.conventions),
     "",
-    "### Constraints and gotchas",
+    "### 不要乱动的地方",
     "",
     bulletList(a.gotchas),
   ].join("\n");
-}
-
-function renderCodeMapGuide(a: GuideAnswers): string {
-  return [
-    "### Inspect first",
-    "",
-    bulletList(a.inspectFirst),
-    "",
-    "### Routing notes",
-    "",
-    a.inspectFirst.length === 0
-      ? "_Add directories, files, or workflows that agents should inspect before editing._"
-      : "Use these paths as the first stop before making code changes.",
-  ].join("\n");
-}
-
-function renderDecisionGuide(a: GuideAnswers): string {
-  return [
-    "### Initial decisions",
-    "",
-    bulletList(a.decisions),
-    "",
-    "_Review these and convert stable items into normal decision entries when they mature._",
-  ].join("\n");
-}
-
-function renderTodoGuide(a: GuideAnswers): string {
-  return ["### Next tasks", "", bulletList(a.nextTasks)].join("\n");
 }
 
 function hint(text: string): void {
@@ -113,45 +69,25 @@ async function promptAnswers(): Promise<GuideAnswers> {
   const rl = createInterface({ input: process.stdin, output: process.stdout });
   try {
     log.blank();
-    log.raw(kleur.bold("  几个小问题，帮 AI 认识这个项目"));
+    log.raw(kleur.bold("  3 个小问题，帮 AI 认识这个项目"));
     log.raw(kleur.gray("  多个答案用分号隔开，不知道的直接回车跳过。"));
     log.blank();
 
-    log.raw(kleur.bold("  1. 这个项目是做什么的？"));
-    hint("给中小电商团队用的库存管理后台");
+    log.raw(kleur.bold("  1. 这个项目是做什么的？给谁用？"));
+    hint("给中小电商团队用的库存管理后台，用户是仓库管理员");
     const overview = (await rl.question("  > ")).trim();
 
     log.blank();
-    log.raw(kleur.bold("  2. 谁在用它？"));
-    hint("仓库管理员、运营人员");
-    const users = (await rl.question("  > ")).trim();
-
-    log.blank();
-    log.raw(kleur.bold("  3. 最重要的几个文件或文件夹是哪些？"));
-    hint("src/services/order.ts; src/routes/");
-    const inspectFirst = splitList(await rl.question("  > "));
-
-    log.blank();
-    log.raw(kleur.bold("  4. 有什么规矩 AI 必须记住？"));
-    hint("所有数据库操作走 service 层，不能在 route 里直接查；错误码统一在 errors/codes.ts");
+    log.raw(kleur.bold("  2. 有什么规矩 AI 必须记住？"));
+    hint("数据库操作走 service 层，不能在 route 里直接查；错误码统一在 errors/codes.ts");
     const conventions = splitList(await rl.question("  > "));
 
     log.blank();
-    log.raw(kleur.bold("  5. 有什么地方绝对不能乱动？"));
-    hint("发货状态机（shipping.ts）；库存扣减的分布式锁逻辑");
+    log.raw(kleur.bold("  3. 有什么地方绝对不能乱动？"));
+    hint("发货状态机 shipping.ts；库存扣减的分布式锁逻辑");
     const gotchas = splitList(await rl.question("  > "));
 
-    log.blank();
-    log.raw(kleur.bold("  6. 已经拍板不用的东西？"));
-    hint("不用 ORM，直接写 SQL；不引入 Redux，用 React Context 就够");
-    const decisions = splitList(await rl.question("  > "));
-
-    log.blank();
-    log.raw(kleur.bold("  7. 现在最紧急要做的事？"));
-    hint("修复退款流程的并发 bug；加库存预警通知");
-    const nextTasks = splitList(await rl.question("  > "));
-
-    return { overview, users, inspectFirst, conventions, gotchas, decisions, nextTasks };
+    return { overview, conventions, gotchas };
   } finally {
     rl.close();
   }
@@ -176,12 +112,8 @@ export async function runGuide(root = process.cwd()): Promise<void> {
   }
 
   const paths = vaultPathsFor(root);
-  upsertGuideSection(paths.project, "Guided project brief", renderProjectGuide(answers));
-  upsertGuideSection(paths.codeMap, "Guided code routing", renderCodeMapGuide(answers));
-  upsertGuideSection(paths.decisions, "Guided decisions", renderDecisionGuide(answers));
-  upsertGuideSection(paths.todo, "Guided next steps", renderTodoGuide(answers));
+  upsertGuideSection(paths.project, "项目引导", renderProjectGuide(answers));
 
-  // Mark guide as completed so the assistant knows not to nag about it
   const cfg = readConfig(paths.config);
   if (cfg) {
     cfg.guideCompletedAt = new Date().toISOString();
@@ -189,14 +121,14 @@ export async function runGuide(root = process.cwd()): Promise<void> {
   }
 
   log.blank();
-  log.ok("已保存到项目记忆。AI 下次进来就能看到这些内容了。");
-
+  log.ok("已写入 .duoshe/PROJECT.md。AI 下次进来就能看到这些内容了。");
+  log.raw(kleur.gray('  之后想到什么，随时用 `duoshe remember "..."` 记一条。'));
 }
 
 export function registerGuideCommand(program: Command): void {
   program
     .command("guide")
-    .description("回答几个问题，帮 AI 认识这个项目（3 分钟）")
+    .description("回答 3 个核心问题，让 AI 认识这个项目（1 分钟）")
     .action(async () => {
       try {
         await runGuide();

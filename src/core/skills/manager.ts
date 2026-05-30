@@ -107,12 +107,32 @@ export function installBundledSkills(projectRoot: string): string[] {
   return installed;
 }
 
-export function enableSkill(projectRoot: string, skillName: string): string | undefined {
+export type EnableResult = {
+  postEnableHint?: string | undefined;
+  // First section of the skill's README.md (everything up to the first H2).
+  // Surfaced to the user inline after enabling so they understand what
+  // changed without having to open the file.
+  readmeIntro?: string | undefined;
+};
+
+function readReadmeIntro(skillDir: string): string | undefined {
+  const path = join(skillDir, "README.md");
+  if (!existsSync(path)) return undefined;
+  try {
+    const text = readFileSync(path, "utf8");
+    const h2 = text.indexOf("\n## ");
+    return (h2 === -1 ? text : text.slice(0, h2)).trim();
+  } catch {
+    return undefined;
+  }
+}
+
+export function enableSkill(projectRoot: string, skillName: string): EnableResult {
   const paths = vaultPathsFor(projectRoot);
   const availDir = join(paths.skillsAvailable, skillName);
   const enabledDir = join(paths.skillsEnabled, skillName);
 
-  if (existsSync(enabledDir)) return undefined;
+  if (existsSync(enabledDir)) return {};
   mkdirSync(paths.skillsEnabled, { recursive: true });
 
   try {
@@ -128,7 +148,10 @@ export function enableSkill(projectRoot: string, skillName: string): string | un
   }
 
   updateEnabledSkillsConfig(paths.config, skillName, true);
-  return readSkillMeta(availDir).postEnableHint;
+  return {
+    postEnableHint: readSkillMeta(availDir).postEnableHint,
+    readmeIntro: readReadmeIntro(availDir),
+  };
 }
 
 // Returns combined detectors + dirHints from all currently enabled skills.

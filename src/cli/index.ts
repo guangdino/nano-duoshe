@@ -57,7 +57,7 @@ program.action(() => {
   process.stdout.write(`  ${kleur.gray("项目记忆层，本地优先。给 Claude Code / Codex / Cursor 用。")}\n\n`);
   process.stdout.write(`  ${kleur.bold("第一次用？")}  在项目目录里运行：\n`);
   process.stdout.write(`      ${kleur.cyan("duoshe init")}     ${kleur.gray(`# 在 ${here} 初始化记忆库`)}\n`);
-  process.stdout.write(`      ${kleur.cyan("duoshe guide")}    ${kleur.gray("# 回答 7 个小问题，让 AI 认识这个项目")}\n\n`);
+  process.stdout.write(`      ${kleur.cyan("duoshe guide")}    ${kleur.gray("# 回答 3 个核心问题，让 AI 认识这个项目")}\n\n`);
   process.stdout.write(`  ${kleur.bold("常用命令：")}\n`);
   process.stdout.write(`      ${kleur.cyan('duoshe remember "..."')}    记一条重要的事\n`);
   process.stdout.write(`      ${kleur.cyan("duoshe review")}             看待确认的记录\n`);

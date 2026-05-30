@@ -39,9 +39,20 @@ function runList(root: string): void {
 function runEnable(root: string, skillName: string): void {
   requireVault(root);
   try {
-    const hint = enableSkill(root, skillName);
+    const result = enableSkill(root, skillName);
     log.ok(`已启用技能 "${skillName}"`);
-    if (hint) log.info(hint);
+    if (result.readmeIntro) {
+      log.blank();
+      for (const line of result.readmeIntro.split("\n")) {
+        log.raw(kleur.gray(`  ${line}`));
+      }
+      log.blank();
+      log.raw(kleur.gray(`  完整说明：.duoshe/SKILLS/enabled/${skillName}/README.md`));
+    }
+    if (result.postEnableHint) {
+      log.blank();
+      log.info(result.postEnableHint);
+    }
   } catch (err) {
     log.err(err instanceof Error ? err.message : String(err));
     process.exit(1);
