@@ -11,7 +11,8 @@ import {
 import { syncGitignore } from "../../adapters/gitignore.js";
 import { detectProfile, profileLabel } from "../../core/profile/detect.js";
 import { fullScan } from "../../core/scanner/index.js";
-import { installBundledSkills } from "../../core/skills/manager.js";
+import { enableSkill, installBundledSkills } from "../../core/skills/manager.js";
+import type { ProjectProfile } from "../../core/types.js";
 import { initVault, vaultExists } from "../../core/vault/index.js";
 import { readConfig, writeConfig } from "../../core/vault/config.js";
 import { vaultPathsFor } from "../../core/vault/paths.js";
@@ -150,6 +151,7 @@ async function runInit(opts: InitOptions): Promise<void> {
   if (opts.guided) {
     log.blank();
     await runGuide(root);
+    await maybeOfferSkillForProfile(root, guess.profile);
   }
 
   const elapsed = ((Date.now() - start) / 1000).toFixed(1);
@@ -157,8 +159,60 @@ async function runInit(opts: InitOptions): Promise<void> {
   log.raw(kleur.green().bold("  准备好了。"));
   log.raw(kleur.gray(`  用时 ${elapsed}s`));
   log.blank();
-  printFirstStepForProfile(guess.profile);
+  if (opts.guided) {
+    printDailyWorkflow();
+  } else {
+    printFirstStepForProfile(guess.profile);
+  }
   log.raw(kleur.gray("  连接到 AI 工具的方法见 .duoshe/SETUP.md（已经为你生成好了）。"));
+  log.blank();
+}
+
+// Maps a detected profile to the bundled skill that enriches detection for it.
+// Returns undefined for profiles where no specialized skill ships (ai_app, kid,
+// general — they get adequate coverage from the core detectors).
+function profileToSkill(profile: ProjectProfile): string | undefined {
+  switch (profile) {
+    case "embedded": return "embedded";
+    case "algo": return "matlab";
+    case "non_dev_site": return "wordpress";
+    default: return undefined;
+  }
+}
+
+// In --guided mode, after the project brief is captured, offer to enable the
+// skill matching the detected profile. Skipped silently for general / kid /
+// ai_app (no domain skill) and in non-TTY contexts.
+async function maybeOfferSkillForProfile(root: string, profile: ProjectProfile): Promise<void> {
+  const skillName = profileToSkill(profile);
+  if (!skillName) return;
+  if (!process.stdin.isTTY || !process.stdout.isTTY) return;
+
+  log.blank();
+  log.raw(kleur.bold(`  检测到 ${profileLabel(profile)} —— 想现在启用 ${kleur.cyan(skillName)} skill 吗？`));
+  log.raw(kleur.gray("    （识别更准、目录标签更对，可以随时 `duoshe skill disable` 关掉）"));
+  const ok = await confirmInteractive("启用？");
+  if (!ok) {
+    log.info(`好的，跳过。想了解：${kleur.cyan(`duoshe skill enable ${skillName}`)}`);
+    return;
+  }
+
+  try {
+    const result = enableSkill(root, skillName);
+    log.ok(`已启用 ${skillName} skill`);
+    if (result.postEnableHint) {
+      log.info(result.postEnableHint);
+    }
+  } catch (err) {
+    log.warn(err instanceof Error ? err.message : String(err));
+  }
+}
+
+function printDailyWorkflow(): void {
+  log.raw(kleur.bold("  日常用法（3 个命令就够）："));
+  log.raw(`    ${kleur.cyan('duoshe remember "..."')}    想到什么记下来（暂存为待确认）`);
+  log.raw(`    ${kleur.cyan("duoshe review")}             看待确认的记录，决定 save / drop`);
+  log.raw(`    ${kleur.cyan('duoshe search "..."')}       搜过去记下的内容`);
   log.blank();
 }
 
