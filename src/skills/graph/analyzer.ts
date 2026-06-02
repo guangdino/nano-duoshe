@@ -1,4 +1,5 @@
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import type { Dirent } from "node:fs";
+import { readFileSync, readdirSync, statSync } from "node:fs";
 import { extname, join, relative, resolve } from "node:path";
 
 export type DepEdge = { from: string; to: string };
@@ -13,8 +14,7 @@ export type GraphAnalysis = {
 const SOURCE_EXTS = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"]);
 const RESOLVE_EXTS = [".ts", ".tsx", ".js", ".jsx"];
 
-const IMPORT_RE =
-  /(?:import|export)\s+(?:[\s\S]*?\s+from\s+)?['"]([^'"]+)['"]/g;
+const IMPORT_RE = /(?:import|export)\s+(?:[\s\S]*?\s+from\s+)?['"]([^'"]+)['"]/g;
 const REQUIRE_RE = /require\s*\(\s*['"]([^'"]+)['"]\s*\)/g;
 
 function isRelative(spec: string): boolean {
@@ -22,14 +22,15 @@ function isRelative(spec: string): boolean {
 }
 
 function collectSourceFiles(dir: string, root: string, files: string[] = []): string[] {
-  let entries;
+  let entries: Dirent<string>[] = [];
   try {
     entries = readdirSync(dir, { withFileTypes: true });
   } catch {
     return files;
   }
   for (const entry of entries) {
-    if (entry.name.startsWith(".") || entry.name === "node_modules" || entry.name === "dist") continue;
+    if (entry.name.startsWith(".") || entry.name === "node_modules" || entry.name === "dist")
+      continue;
     const full = join(dir, entry.name);
     if (entry.isDirectory()) {
       collectSourceFiles(full, root, files);
@@ -76,9 +77,10 @@ function extractImports(filePath: string, root: string): string[] {
   const specs = new Set<string>();
   for (const re of [IMPORT_RE, REQUIRE_RE]) {
     re.lastIndex = 0; // required: global-flag regexes are stateful
-    let m: RegExpExecArray | null;
-    while ((m = re.exec(src)) !== null) {
+    let m = re.exec(src);
+    while (m !== null) {
       if (m[1] !== undefined) specs.add(m[1]);
+      m = re.exec(src);
     }
   }
   const resolved: string[] = [];
@@ -158,8 +160,14 @@ export function renderMermaid(analysis: GraphAnalysis): string {
   for (const { from, to } of analysis.edges) {
     const fId = nodeId(from);
     const tId = nodeId(to);
-    if (!seen.has(from)) { lines.push(`  ${fId}["${from}"]`); seen.add(from); }
-    if (!seen.has(to)) { lines.push(`  ${tId}["${to}"]`); seen.add(to); }
+    if (!seen.has(from)) {
+      lines.push(`  ${fId}["${from}"]`);
+      seen.add(from);
+    }
+    if (!seen.has(to)) {
+      lines.push(`  ${tId}["${to}"]`);
+      seen.add(to);
+    }
     lines.push(`  ${fId} --> ${tId}`);
   }
   if (lines.length === 1) lines.push("  empty[no import edges found]");

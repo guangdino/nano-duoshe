@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename } from "node:path";
 import type { GitInsights, ProjectScan } from "../types.js";
 import { defaultConfig, writeConfig } from "./config.js";
-import { vaultPathsFor, type VaultPaths } from "./paths.js";
+import { type VaultPaths, vaultPathsFor } from "./paths.js";
 import {
   renderCodeMapMd,
   renderDecisionsMd,
@@ -31,7 +31,11 @@ function isUserConfirmed(path: string): boolean {
   }
 }
 
-function writeMd(path: string, content: string, opts: { force: boolean }): "wrote" | "skipped-existing" | "skipped-confirmed" {
+function writeMd(
+  path: string,
+  content: string,
+  opts: { force: boolean },
+): "wrote" | "skipped-existing" | "skipped-confirmed" {
   if (existsSync(path)) {
     if (isUserConfirmed(path)) return "skipped-confirmed";
     if (!opts.force) return "skipped-existing";
@@ -79,8 +83,16 @@ export function initVault(opts: {
   }
 
   const fileActions: VaultInitResult["fileActions"] = {
-    "PROJECT.md": writeMd(paths.project, renderProjectMd({ projectName, scan: opts.scan, git: opts.git }), { force }),
-    "CODEMAP.md": writeMd(paths.codeMap, renderCodeMapMd({ projectName, scan: opts.scan, git: opts.git }), { force }),
+    "PROJECT.md": writeMd(
+      paths.project,
+      renderProjectMd({ projectName, scan: opts.scan, git: opts.git }),
+      { force },
+    ),
+    "CODEMAP.md": writeMd(
+      paths.codeMap,
+      renderCodeMapMd({ projectName, scan: opts.scan, git: opts.git }),
+      { force },
+    ),
     "DECISIONS.md": writeMd(paths.decisions, renderDecisionsMd(), { force }),
     "TROUBLESHOOTING.md": writeMd(paths.troubleshooting, renderTroubleshootingMd(), { force }),
     "MODULES.md": writeMd(paths.modules, renderModulesMd({ scan: opts.scan }), { force }),

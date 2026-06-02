@@ -25,7 +25,8 @@ function seed(dir: string): void {
 
   const c1 = store.add({
     type: "decision",
-    content: "Use libpq directly, not an ORM. Reason: control over query plans and connection pooling.",
+    content:
+      "Use libpq directly, not an ORM. Reason: control over query plans and connection pooling.",
     source: "manual",
   });
   publishToMarkdown({ projectRoot: dir, candidate: store.markPublished(c1.id) });
@@ -138,7 +139,11 @@ describe("reindex (M3)", () => {
     expect(search(dir, "新加的决策").length).toBe(0);
 
     const store = new CandidateStore(dir);
-    const c = store.add({ type: "decision", content: "新加的决策:用 Biome 不用 ESLint", source: "test" });
+    const c = store.add({
+      type: "decision",
+      content: "新加的决策:用 Biome 不用 ESLint",
+      source: "test",
+    });
     publishToMarkdown({ projectRoot: dir, candidate: store.markPublished(c.id) });
 
     reindex(dir);

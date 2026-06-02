@@ -1,5 +1,5 @@
+import { type SkillExtensions, getEnabledSkillExtensions } from "../skills/manager.js";
 import type { GitInsights, ProjectScan } from "../types.js";
-import { getEnabledSkillExtensions, type SkillExtensions } from "../skills/manager.js";
 import { scanFileTree } from "./filetree.js";
 import { scanGit } from "./git.js";
 import { detectStacks, detectWorkspacePackages } from "./stack.js";
@@ -25,7 +25,10 @@ export function scanProject(root: string, extensions?: SkillExtensions): Project
   return out;
 }
 
-export function fullScan(root: string, opts: { quick?: boolean } = {}): {
+export function fullScan(
+  root: string,
+  opts: { quick?: boolean } = {},
+): {
   scan: ProjectScan;
   git: GitInsights;
 } {

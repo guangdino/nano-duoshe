@@ -85,9 +85,10 @@ async function runSearch(query: string, opts: SearchOpts): Promise<void> {
   }
 
   if (pendingMatches.length > 0) {
-    const lead = hits.length > 0
-      ? `还有 ${pendingMatches.length} 条 ${kleur.yellow("[待确认]")} 记录也匹配`
-      : `找到 ${pendingMatches.length} 条 ${kleur.yellow("[待确认]")} 记录匹配`;
+    const lead =
+      hits.length > 0
+        ? `还有 ${pendingMatches.length} 条 ${kleur.yellow("[待确认]")} 记录也匹配`
+        : `找到 ${pendingMatches.length} 条 ${kleur.yellow("[待确认]")} 记录匹配`;
     log.raw(kleur.bold(`  ${lead}（运行 ${kleur.cyan("duoshe review")} 决定是否保存）：`));
     log.blank();
     for (const c of pendingMatches) {
@@ -105,7 +106,9 @@ function searchPendingCandidates(root: string, query: string): Candidate[] {
     if (needle.length === 0) return [];
     return store
       .listByStatus("pending")
-      .filter((c) => c.content.toLowerCase().includes(needle) || c.title.toLowerCase().includes(needle))
+      .filter(
+        (c) => c.content.toLowerCase().includes(needle) || c.title.toLowerCase().includes(needle),
+      )
       .slice(0, 8);
   } catch {
     return [];
@@ -149,7 +152,10 @@ export function registerSearchCommand(program: Command): void {
     .command("search <query>")
     .description("在项目记忆里搜索（PROJECT / DECISIONS / TROUBLESHOOTING 等）")
     .option("--limit <n>", "最多返回几条结果", "8")
-    .option("--type <type>", "按类型筛选：project（项目）| decision（决策）| troubleshooting（踩坑）| module（模块）| session_summary（会话摘要）")
+    .option(
+      "--type <type>",
+      "按类型筛选：project（项目）| decision（决策）| troubleshooting（踩坑）| module（模块）| session_summary（会话摘要）",
+    )
     .option("--no-auto-index", "不自动建索引")
     .action(async (query: string, opts: SearchOpts) => {
       try {

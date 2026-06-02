@@ -57,9 +57,11 @@ function extractH1(buf: string[]): string | null {
 }
 
 export function slugify(s: string): string {
-  return s
-    .toLowerCase()
-    .replace(/[^a-z0-9一-鿿]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 80) || "section";
+  return (
+    s
+      .toLowerCase()
+      .replace(/[^a-z0-9一-鿿]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 80) || "section"
+  );
 }

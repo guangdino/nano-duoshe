@@ -91,7 +91,7 @@ async function runReview(opts: ReviewOptions): Promise<void> {
       log.raw(`  保存（这一条）：${kleur.cyan(`duoshe save ${firstId}`)}`);
       log.raw(`  丢弃（这一条）：${kleur.cyan(`duoshe drop ${firstId}`)}`);
       if (list.length > 1) {
-        log.raw(kleur.gray(`  其他记录把上面命令里的 id 换成对应的就行。`));
+        log.raw(kleur.gray("  其他记录把上面命令里的 id 换成对应的就行。"));
       }
     } else {
       log.raw(`  保存：${kleur.cyan("duoshe save <id>")}`);
@@ -122,7 +122,7 @@ async function runPublish(id: string): Promise<void> {
   if (result.action !== "already-published") {
     log.ok(`已保存到 .duoshe/${c.target}`);
   } else {
-    log.info(`这条记录已经保存过了，跳过。`);
+    log.info("这条记录已经保存过了，跳过。");
   }
 
   try {
@@ -130,7 +130,6 @@ async function runPublish(id: string): Promise<void> {
   } catch {
     // reindex failure is non-fatal; search may be stale until next reindex
   }
-
 }
 
 async function runReject(id: string): Promise<void> {
@@ -144,7 +143,7 @@ async function runReject(id: string): Promise<void> {
   }
 
   if (c.status === "published") {
-    log.err(`这条记录已经保存过了，无法丢弃。`);
+    log.err("这条记录已经保存过了，无法丢弃。");
     process.exit(1);
   }
   if (c.status === "rejected") {
@@ -153,18 +152,14 @@ async function runReject(id: string): Promise<void> {
   }
 
   store.markRejected(id);
-  log.ok(`已丢弃。`);
+  log.ok("已丢弃。");
 }
 
 export function registerReviewCommand(program: Command): void {
   program
     .command("review")
     .description("查看待确认的记录，决定保存还是丢弃")
-    .option(
-      "-s, --status <status>",
-      `按状态筛选。可选：${humanStatusList()}`,
-      "pending",
-    )
+    .option("-s, --status <status>", `按状态筛选。可选：${humanStatusList()}`, "pending")
     .action(async (opts: ReviewOptions) => {
       try {
         await runReview(opts);

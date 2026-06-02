@@ -1,10 +1,6 @@
 import type { Command } from "commander";
 import kleur from "kleur";
-import {
-  disableSkill,
-  enableSkill,
-  listAvailableSkills,
-} from "../../core/skills/manager.js";
+import { disableSkill, enableSkill, listAvailableSkills } from "../../core/skills/manager.js";
 import { vaultExists } from "../../core/vault/index.js";
 import { log } from "../log.js";
 
@@ -25,9 +21,7 @@ function runList(root: string): void {
   log.raw(kleur.bold("可用技能："));
   log.blank();
   for (const s of skills) {
-    const badge = s.enabled
-      ? kleur.green("已启用")
-      : kleur.gray("未启用");
+    const badge = s.enabled ? kleur.green("已启用") : kleur.gray("未启用");
     log.raw(`  ${badge}  ${kleur.bold(s.name)}`);
     if (s.description) log.raw(`           ${kleur.gray(s.description)}`);
   }
@@ -68,7 +62,9 @@ function runDisable(root: string, skillName: string): void {
 export function registerSkillCommand(program: Command): void {
   const cmd = program
     .command("skill")
-    .description("管理可选技能 —— skill 是可选的扩展能力，比如分析代码依赖图（list / enable / disable）");
+    .description(
+      "管理可选技能 —— skill 是可选的扩展能力，比如分析代码依赖图（list / enable / disable）",
+    );
 
   cmd
     .command("list")

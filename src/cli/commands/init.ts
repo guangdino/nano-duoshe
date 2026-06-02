@@ -3,21 +3,17 @@ import { resolve } from "node:path";
 import { createInterface } from "node:readline/promises";
 import type { Command } from "commander";
 import kleur from "kleur";
-import {
-  detectExistingShells,
-  syncShells,
-  uninstallShells,
-} from "../../adapters/claude-md.js";
+import { detectExistingShells, syncShells, uninstallShells } from "../../adapters/claude-md.js";
 import { syncGitignore } from "../../adapters/gitignore.js";
 import { detectProfile, profileLabel } from "../../core/profile/detect.js";
 import { fullScan } from "../../core/scanner/index.js";
 import { enableSkill, installBundledSkills } from "../../core/skills/manager.js";
 import type { ProjectProfile } from "../../core/types.js";
-import { initVault, vaultExists } from "../../core/vault/index.js";
 import { readConfig, writeConfig } from "../../core/vault/config.js";
+import { initVault, vaultExists } from "../../core/vault/index.js";
 import { vaultPathsFor } from "../../core/vault/paths.js";
-import { runGuide } from "./guide.js";
 import { log } from "../log.js";
+import { runGuide } from "./guide.js";
 
 type InitOptions = {
   force?: boolean;
@@ -37,7 +33,9 @@ function shouldCreateShells(shells: InitOptions["shells"], anyExists: boolean): 
 async function confirmInteractive(question: string): Promise<boolean> {
   const rl = createInterface({ input: process.stdin, output: process.stdout });
   try {
-    const answer = (await rl.question(`  ${question} ${kleur.gray("(y/N) ")}`)).trim().toLowerCase();
+    const answer = (await rl.question(`  ${question} ${kleur.gray("(y/N) ")}`))
+      .trim()
+      .toLowerCase();
     return answer === "y" || answer === "yes";
   } finally {
     rl.close();
@@ -59,7 +57,9 @@ async function runInit(opts: InitOptions): Promise<void> {
 
   // Confirm destructive --force when in TTY (unless --yes was passed).
   if (opts.force && vaultExists(root) && !opts.yes && process.stdin.isTTY && process.stdout.isTTY) {
-    const ok = await confirmInteractive("会重写 .duoshe/ 里的草稿文件（带 <!-- USER-CONFIRMED --> 的内容会保留）。继续？");
+    const ok = await confirmInteractive(
+      "会重写 .duoshe/ 里的草稿文件（带 <!-- USER-CONFIRMED --> 的内容会保留）。继续？",
+    );
     if (!ok) {
       log.info("已取消。");
       return;
@@ -69,17 +69,25 @@ async function runInit(opts: InitOptions): Promise<void> {
   log.step("扫描项目");
   const { scan, git } = fullScan(root, opts.quick === true ? { quick: true } : {});
   if (scan.stacks.length > 0) {
-    log.ok(`检测到 ${scan.stacks.length} 种技术栈：${scan.stacks.map((s) => s.language + (s.framework ? `/${s.framework}` : "")).join("、")}`);
+    log.ok(
+      `检测到 ${scan.stacks.length} 种技术栈：${scan.stacks.map((s) => s.language + (s.framework ? `/${s.framework}` : "")).join("、")}`,
+    );
   } else {
     log.info("没识别出常见技术栈（不影响使用，duoshe 仍能记录决策和踩坑）");
   }
   if (scan.topDirs.length === 0) {
-    log.ok(`遍历了 ${scan.totalFiles} 个文件（${scan.totalSourceFiles} 个源码文件），文件都在根目录`);
+    log.ok(
+      `遍历了 ${scan.totalFiles} 个文件（${scan.totalSourceFiles} 个源码文件），文件都在根目录`,
+    );
   } else {
-    log.ok(`遍历了 ${scan.totalFiles} 个文件（${scan.totalSourceFiles} 个源码文件），跨 ${scan.topDirs.length} 个顶层目录`);
+    log.ok(
+      `遍历了 ${scan.totalFiles} 个文件（${scan.totalSourceFiles} 个源码文件），跨 ${scan.topDirs.length} 个顶层目录`,
+    );
   }
   if (git.isGitRepo) {
-    log.ok(`git 仓库：${git.hotFiles?.length ?? 0} 个热点文件，${git.contributorCount ?? "?"} 位贡献者`);
+    log.ok(
+      `git 仓库：${git.hotFiles?.length ?? 0} 个热点文件，${git.contributorCount ?? "?"} 位贡献者`,
+    );
   } else {
     log.info("不是 git 仓库 — 跳过 git 历史分析");
   }
@@ -87,7 +95,11 @@ async function runInit(opts: InitOptions): Promise<void> {
   const guess = detectProfile(scan, root);
   log.step("识别项目类型");
   log.ok(`猜测：${kleur.bold(profileLabel(guess.profile))}（${guess.reason}）`);
-  log.raw(kleur.gray(`    如果不对，用 ${kleur.cyan("duoshe profile set <类型>")} 改；查看类型：${kleur.cyan("duoshe profile list")}`));
+  log.raw(
+    kleur.gray(
+      `    如果不对，用 ${kleur.cyan("duoshe profile set <类型>")} 改；查看类型：${kleur.cyan("duoshe profile list")}`,
+    ),
+  );
 
   log.step("写入记忆库文件");
   const init = initVault({ projectRoot: root, scan, git, force: opts.force === true });
@@ -100,7 +112,9 @@ async function runInit(opts: InitOptions): Promise<void> {
   log.step("安装内置技能（skills）");
   const installedSkills = installBundledSkills(root);
   if (installedSkills.length > 0) {
-    log.ok(`已安装 ${installedSkills.length} 个技能到 .duoshe/SKILLS/available/：${installedSkills.join("、")}`);
+    log.ok(
+      `已安装 ${installedSkills.length} 个技能到 .duoshe/SKILLS/available/：${installedSkills.join("、")}`,
+    );
     log.info(`技能默认不启用 — 用 ${kleur.cyan("duoshe skill enable <名字>")} 来启用`);
   } else {
     log.info("技能已经装过了，跳过");
@@ -118,7 +132,8 @@ async function runInit(opts: InitOptions): Promise<void> {
   const shellResults = syncShells(root, { createIfMissing });
   for (const r of shellResults) {
     if (r.status === "created") log.ok(`创建 ${r.file}（指向 .duoshe/ 的简短指引）`);
-    else if (r.status === "appended") log.ok(`已在 ${r.file} 末尾追加 DuoShe 块（你原有的内容不动）`);
+    else if (r.status === "appended")
+      log.ok(`已在 ${r.file} 末尾追加 DuoShe 块（你原有的内容不动）`);
     else if (r.status === "updated") log.ok(`更新了 ${r.file} 里的 DuoShe 块`);
     else if (r.status === "unchanged") log.info(`${r.file} 的 DuoShe 块已经是最新`);
     else if (r.status === "skipped-no-existing") log.info(`${r.file} 不存在，跳过`);
@@ -173,10 +188,14 @@ async function runInit(opts: InitOptions): Promise<void> {
 // general — they get adequate coverage from the core detectors).
 function profileToSkill(profile: ProjectProfile): string | undefined {
   switch (profile) {
-    case "embedded": return "embedded";
-    case "algo": return "matlab";
-    case "non_dev_site": return "wordpress";
-    default: return undefined;
+    case "embedded":
+      return "embedded";
+    case "algo":
+      return "matlab";
+    case "non_dev_site":
+      return "wordpress";
+    default:
+      return undefined;
   }
 }
 
@@ -189,7 +208,11 @@ async function maybeOfferSkillForProfile(root: string, profile: ProjectProfile):
   if (!process.stdin.isTTY || !process.stdout.isTTY) return;
 
   log.blank();
-  log.raw(kleur.bold(`  检测到 ${profileLabel(profile)} —— 想现在启用 ${kleur.cyan(skillName)} skill 吗？`));
+  log.raw(
+    kleur.bold(
+      `  检测到 ${profileLabel(profile)} —— 想现在启用 ${kleur.cyan(skillName)} skill 吗？`,
+    ),
+  );
   log.raw(kleur.gray("    （识别更准、目录标签更对，可以随时 `duoshe skill disable` 关掉）"));
   const ok = await confirmInteractive("启用？");
   if (!ok) {
@@ -228,26 +251,42 @@ function printFirstStepForProfile(profile: import("../../core/types.js").Project
       break;
     case "non_dev_site":
       log.raw(kleur.bold("  现在做这件事最重要："));
-      log.raw(`    把域名 / SSL / 服务器 / 后台账号信息记下来：`);
-      log.raw(`    ${kleur.cyan('duoshe remember "域名 example.com 到期日 2026-08-12，在阿里云续费"')}`);
-      log.raw(kleur.gray(`    启用网站专项支持：${kleur.cyan("duoshe skill enable wordpress")}  然后  ${kleur.cyan("duoshe rescan")}`));
+      log.raw("    把域名 / SSL / 服务器 / 后台账号信息记下来：");
+      log.raw(
+        `    ${kleur.cyan('duoshe remember "域名 example.com 到期日 2026-08-12，在阿里云续费"')}`,
+      );
+      log.raw(
+        kleur.gray(
+          `    启用网站专项支持：${kleur.cyan("duoshe skill enable wordpress")}  然后  ${kleur.cyan("duoshe rescan")}`,
+        ),
+      );
       break;
     case "algo":
       log.raw(kleur.bold("  现在做这件事："));
-      log.raw(`    把当前实验的基准记下来，方便以后对比：`);
+      log.raw("    把当前实验的基准记下来，方便以后对比：");
       log.raw(`    ${kleur.cyan('duoshe remember "v1 基线 settling time 35ms @ 1Nm step"')}`);
-      log.raw(kleur.gray(`    启用算法专项支持：${kleur.cyan("duoshe skill enable matlab")}  然后  ${kleur.cyan("duoshe rescan")}`));
+      log.raw(
+        kleur.gray(
+          `    启用算法专项支持：${kleur.cyan("duoshe skill enable matlab")}  然后  ${kleur.cyan("duoshe rescan")}`,
+        ),
+      );
       break;
     case "embedded":
       log.raw(kleur.bold("  现在做这件事："));
-      log.raw(`    把硬件约束或 ISR 边界先记一条：`);
+      log.raw("    把硬件约束或 ISR 边界先记一条：");
       log.raw(`    ${kleur.cyan('duoshe remember "X 函数运行在中断上下文，不能调阻塞 API"')}`);
-      log.raw(kleur.gray(`    启用嵌入式专项支持：${kleur.cyan("duoshe skill enable embedded")}  然后  ${kleur.cyan("duoshe rescan")}`));
+      log.raw(
+        kleur.gray(
+          `    启用嵌入式专项支持：${kleur.cyan("duoshe skill enable embedded")}  然后  ${kleur.cyan("duoshe rescan")}`,
+        ),
+      );
       break;
     case "ai_app":
       log.raw(kleur.bold("  现在做这件事："));
-      log.raw(`    记下当前模型 + system prompt 版本，方便以后对比效果：`);
-      log.raw(`    ${kleur.cyan('duoshe remember "当前用 claude-sonnet-4，system prompt v3，平均延迟 600ms"')}`);
+      log.raw("    记下当前模型 + system prompt 版本，方便以后对比效果：");
+      log.raw(
+        `    ${kleur.cyan('duoshe remember "当前用 claude-sonnet-4，system prompt v3，平均延迟 600ms"')}`,
+      );
       break;
     case "general":
       log.raw(kleur.bold("  现在做一件事就够了："));
@@ -299,7 +338,9 @@ async function runUninstall(): Promise<void> {
 export function registerInitCommand(program: Command): void {
   program
     .command("init")
-    .description("在当前目录初始化记忆库（扫描项目结构，生成 PROJECT.md / CODEMAP.md / MODULES.md 等草稿）")
+    .description(
+      "在当前目录初始化记忆库（扫描项目结构，生成 PROJECT.md / CODEMAP.md / MODULES.md 等草稿）",
+    )
     .option("--force", "强制重写 .duoshe/ 下的草稿（带 <!-- USER-CONFIRMED --> 的内容会保留）")
     .option("--quick", "跳过 git 历史扫描（大仓库可以更快）")
     .option("--guided", "init 之后直接进入问答模式，写一段引导性的项目说明")

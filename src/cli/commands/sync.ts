@@ -25,7 +25,8 @@ async function runSync(opts: SyncOptions): Promise<void> {
     else if (r.status === "appended") log.ok(`已在 ${r.file} 末尾追加 DuoShe 块`);
     else if (r.status === "updated") log.ok(`更新了 ${r.file} 里的 DuoShe 块`);
     else if (r.status === "unchanged") log.info(`${r.file} 的 DuoShe 块已经是最新`);
-    else if (r.status === "skipped-no-existing") log.info(`${r.file} 不存在（加 --create 强制创建）`);
+    else if (r.status === "skipped-no-existing")
+      log.info(`${r.file} 不存在（加 --create 强制创建）`);
   }
 }
 

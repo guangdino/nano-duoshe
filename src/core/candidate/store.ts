@@ -28,8 +28,7 @@ function readJsonl(path: string): Candidate[] {
     if (trimmed.length === 0) continue;
     try {
       out.push(JSON.parse(trimmed) as Candidate);
-    } catch {
-    }
+    } catch {}
   }
   return out;
 }

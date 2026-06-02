@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { basename, join, relative } from "node:path";
 import { vaultPathsFor } from "../vault/paths.js";
-import { closeDb, openDb, type IndexDb } from "./db.js";
+import { type IndexDb, closeDb, openDb } from "./db.js";
 import { slugify, splitMarkdownSections } from "./sections.js";
 import { bigramize } from "./tokenize.js";
 

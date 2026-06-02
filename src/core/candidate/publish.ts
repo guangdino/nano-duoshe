@@ -34,14 +34,7 @@ function makeFooter(c: Candidate): string {
 
 function buildSection(c: Candidate): string {
   const footer = makeFooter(c);
-  return [
-    `## ${c.title}`,
-    "",
-    c.content.trim(),
-    "",
-    footer,
-    "",
-  ].join("\n");
+  return [`## ${c.title}`, "", c.content.trim(), "", footer, ""].join("\n");
 }
 
 function alreadyPublished(text: string, candidateId: string): boolean {
@@ -78,9 +71,7 @@ export function publishToMarkdown(opts: {
   const targetPath = join(paths.vault, candidate.target);
 
   if (!existsSync(targetPath)) {
-    throw new Error(
-      `目标文件不存在：${targetPath}。请先运行 \`duoshe init\`。`,
-    );
+    throw new Error(`目标文件不存在：${targetPath}。请先运行 \`duoshe init\`。`);
   }
 
   const current = readFileSync(targetPath, "utf8");
@@ -99,5 +90,10 @@ export function publishToMarkdown(opts: {
   const updated = `${working}${sep}${section}`;
 
   writeFileSync(targetPath, updated, "utf8");
-  return { ok: true, targetPath, action: "appended", bytesWritten: updated.length - current.length };
+  return {
+    ok: true,
+    targetPath,
+    action: "appended",
+    bytesWritten: updated.length - current.length,
+  };
 }

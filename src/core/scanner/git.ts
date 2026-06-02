@@ -58,13 +58,17 @@ function getLargestSourceFiles(root: string): GitInsights["largestFiles"] {
   for (const rel of out.split("\n")) {
     const path = rel.trim();
     if (!path) continue;
-    if (/\.(png|jpg|jpeg|gif|webp|ico|pdf|zip|tar|gz|woff2?|ttf|otf|mp4|mp3|exe|dll|so|dylib)$/i.test(path)) continue;
+    if (
+      /\.(png|jpg|jpeg|gif|webp|ico|pdf|zip|tar|gz|woff2?|ttf|otf|mp4|mp3|exe|dll|so|dylib)$/i.test(
+        path,
+      )
+    )
+      continue;
     if (path.startsWith(".duoshe/")) continue;
     try {
       const st = statSync(join(root, path));
       if (st.isFile()) sizes.push({ path, bytes: st.size });
-    } catch {
-    }
+    } catch {}
   }
 
   return sizes.sort((a, b) => b.bytes - a.bytes).slice(0, 10);

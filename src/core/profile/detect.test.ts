@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -115,7 +115,9 @@ describe("detectProfile", () => {
 
   it("ai_app: Anthropic SDK is high-confidence", () => {
     const scan = makeScan({
-      stacks: [{ language: "TypeScript", framework: "Anthropic Claude", manifestFile: "package.json" }],
+      stacks: [
+        { language: "TypeScript", framework: "Anthropic Claude", manifestFile: "package.json" },
+      ],
       totalFiles: 10,
     });
     expect(detectProfile(scan, dir).profile).toBe("ai_app");

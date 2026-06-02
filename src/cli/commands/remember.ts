@@ -44,7 +44,7 @@ async function pickTypeInteractive(): Promise<CandidateType> {
     log.blank();
     log.raw(kleur.bold("  这条记录属于哪种情况？"));
     for (let i = 0; i < TYPE_MENU.length; i++) {
-      log.raw(`  ${kleur.cyan(String(i + 1))}. ${TYPE_MENU[i]!.label}`);
+      log.raw(`  ${kleur.cyan(String(i + 1))}. ${TYPE_MENU[i]?.label}`);
     }
     log.blank();
     const answer = (await rl.question("  请输入序号（默认 1）> ")).trim();
@@ -52,7 +52,7 @@ async function pickTypeInteractive(): Promise<CandidateType> {
     if (Number.isNaN(idx) || idx < 0 || idx >= TYPE_MENU.length) {
       return "decision";
     }
-    return TYPE_MENU[idx]!.type;
+    return TYPE_MENU[idx]?.type ?? "decision";
   } finally {
     rl.close();
   }
@@ -106,12 +106,12 @@ export function registerRememberCommand(program: Command): void {
   program
     .command("remember <content>")
     .description("记录一条知识（决策、踩坑、模块规则等），暂存为待确认状态")
-    .option(
-      "-t, --type <type>",
-      `指定类型，不指定则交互选择。可选：${humanTypeList()}`,
-    )
+    .option("-t, --type <type>", `指定类型，不指定则交互选择。可选：${humanTypeList()}`)
     .option("--title <title>", "自定义标题（默认取内容第一行）")
-    .option("--target <file>", "覆盖目标文件（DECISIONS.md | TROUBLESHOOTING.md | MODULES.md | PROJECT.md）")
+    .option(
+      "--target <file>",
+      "覆盖目标文件（DECISIONS.md | TROUBLESHOOTING.md | MODULES.md | PROJECT.md）",
+    )
     .option("--session-id <id>", "关联来源 session id")
     .option("--source <source>", "来源标签（如 'claude-code'、'manual'）")
     .action(async (content: string, opts: RememberOptions) => {

@@ -10,9 +10,9 @@ export function openDb(dbPath: string): IndexDb {
   const db = new Database(dbPath);
   db.exec(SCHEMA_SQL);
 
-  const row = db
-    .prepare("SELECT value FROM meta WHERE key = 'schema_version'")
-    .get() as { value: string } | undefined;
+  const row = db.prepare("SELECT value FROM meta WHERE key = 'schema_version'").get() as
+    | { value: string }
+    | undefined;
   if (!row) {
     db.prepare("INSERT INTO meta (key, value) VALUES ('schema_version', ?)").run(
       String(SCHEMA_VERSION),
@@ -25,6 +25,5 @@ export function openDb(dbPath: string): IndexDb {
 export function closeDb(db: IndexDb): void {
   try {
     db.close();
-  } catch {
-  }
+  } catch {}
 }

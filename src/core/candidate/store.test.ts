@@ -31,7 +31,10 @@ describe("CandidateStore", () => {
 
   it("add() returns a candidate with generated id, pending status, defaulted target/title", () => {
     const store = new CandidateStore(dir);
-    const c = store.add({ type: "decision", content: "Use libpq, not an ORM.\nReason: control over query plans." });
+    const c = store.add({
+      type: "decision",
+      content: "Use libpq, not an ORM.\nReason: control over query plans.",
+    });
     expect(c.id).toMatch(/^cand_/);
     expect(c.status).toBe("pending");
     expect(c.target).toBe("DECISIONS.md");

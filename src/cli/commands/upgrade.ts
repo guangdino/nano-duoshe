@@ -23,7 +23,12 @@ function detectInstallSource(): string {
 
   // Fallback: anywhere under node_modules/.bin in PATH? Usually means a local install.
   const pathParts = (process.env.PATH ?? "").split(delimiter);
-  if (pathParts.some((p) => p.toLowerCase().includes("node_modules") && exec.toLowerCase().startsWith(p.toLowerCase()))) {
+  if (
+    pathParts.some(
+      (p) =>
+        p.toLowerCase().includes("node_modules") && exec.toLowerCase().startsWith(p.toLowerCase()),
+    )
+  ) {
     return "local";
   }
 

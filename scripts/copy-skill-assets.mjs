@@ -1,8 +1,8 @@
 // Copies non-TS skill assets (skill.json, README.md, etc.) from src/skills/
 // into dist/skills/ after `tsc` runs. tsc only emits .js / .d.ts, so without
 // this the bundled-skill installer would find empty directories.
-import { cpSync, readdirSync, existsSync, mkdirSync, statSync } from "node:fs";
-import { join, dirname } from "node:path";
+import { cpSync, existsSync, mkdirSync, readdirSync, statSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));

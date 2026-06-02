@@ -38,10 +38,7 @@ function workspacesContainTsconfig(root: string, workspaces: NpmPkg["workspaces"
   return false;
 }
 
-function* iterWorkspaceDirs(
-  root: string,
-  workspaces: NpmPkg["workspaces"],
-): Iterable<string> {
+function* iterWorkspaceDirs(root: string, workspaces: NpmPkg["workspaces"]): Iterable<string> {
   const patterns = Array.isArray(workspaces) ? workspaces : (workspaces?.packages ?? []);
   for (const pat of patterns) {
     const dir = pat.replace(/\/\*+$/, "").replace(/\*+$/, "");
@@ -70,7 +67,10 @@ export function detectWorkspacePackages(root: string): WorkspacePkgInfo[] {
   for (const subAbs of iterWorkspaceDirs(root, pkg.workspaces)) {
     const subPkg = readJsonSafe<NpmPkg>(join(subAbs, "package.json")) ?? {};
     const name = subPkg.name ?? subAbs.split(/[\\/]/).pop() ?? "?";
-    const rel = subAbs.replace(root, "").replace(/^[\\/]+/, "").replace(/\\/g, "/");
+    const rel = subAbs
+      .replace(root, "")
+      .replace(/^[\\/]+/, "")
+      .replace(/\\/g, "/");
     const info: WorkspacePkgInfo = { name, path: rel };
     if (existsSync(join(subAbs, "tsconfig.json"))) info.language = "TypeScript";
     results.push(info);
@@ -105,7 +105,8 @@ function detectNpm(root: string): Stack | null {
   else if (deps.fastify) framework = "Fastify";
 
   // Workspace-style monorepos often have tsconfig only inside packages, not at root.
-  const hasWorkspaceTs = Array.isArray(pkg.workspaces) && workspacesContainTsconfig(root, pkg.workspaces);
+  const hasWorkspaceTs =
+    Array.isArray(pkg.workspaces) && workspacesContainTsconfig(root, pkg.workspaces);
   const hasTs =
     !!deps.typescript ||
     existsSync(join(root, "tsconfig.json")) ||
@@ -144,8 +145,7 @@ function detectPython(root: string): Stack | null {
       else if (txt.includes("flask")) framework = "Flask";
       else if (txt.includes("torch") || txt.includes("pytorch")) framework = "PyTorch";
       else if (txt.includes("tensorflow")) framework = "TensorFlow";
-    } catch {
-    }
+    } catch {}
     let pm: string | undefined;
     if (existsSync(join(root, "poetry.lock"))) pm = "poetry";
     else if (existsSync(join(root, "uv.lock"))) pm = "uv";
@@ -200,9 +200,9 @@ function detectDotNet(root: string): Stack | null {
         if (/<UseWPF>true<\/UseWPF>/i.test(txt)) framework = "WPF";
         else if (/<UseWindowsForms>true<\/UseWindowsForms>/i.test(txt)) framework = "WinForms";
         else if (/<Project Sdk="Microsoft\.NET\.Sdk\.Web"/i.test(txt)) framework = "ASP.NET Core";
-        else if (/<Project Sdk="Microsoft\.NET\.Sdk\.Worker"/i.test(txt)) framework = "Worker Service";
-      } catch {
-      }
+        else if (/<Project Sdk="Microsoft\.NET\.Sdk\.Worker"/i.test(txt))
+          framework = "Worker Service";
+      } catch {}
     }
 
     const stack: Stack = { language, manifestFile: manifest, packageManager: "NuGet" };
@@ -218,10 +218,11 @@ function detectGo(root: string): Stack | null {
   if (!existsSync(manifest)) return null;
   let rawName: string | undefined;
   try {
-    const first = readFileSync(manifest, "utf8").split("\n").find((l) => l.startsWith("module "));
+    const first = readFileSync(manifest, "utf8")
+      .split("\n")
+      .find((l) => l.startsWith("module "));
     if (first) rawName = first.replace("module ", "").trim();
-  } catch {
-  }
+  } catch {}
   const stack: Stack = { language: "Go", manifestFile: "go.mod", packageManager: "go modules" };
   if (rawName !== undefined) stack.rawName = rawName;
   return stack;
@@ -310,7 +311,7 @@ function detectEmbedded(root: string): Stack | null {
       const ini = readFileSync(join(root, "platformio.ini"), "utf8");
       const m = ini.match(/^\s*framework\s*=\s*(\w+)/m);
       if (m) {
-        const fw = m[1]!.toLowerCase();
+        const fw = m[1]?.toLowerCase();
         if (fw === "espidf") framework = "ESP-IDF";
         else if (fw === "arduino") framework = "Arduino";
         else if (fw === "zephyr") framework = "Zephyr";
@@ -330,7 +331,8 @@ function detectEmbedded(root: string): Stack | null {
   }
 
   // ESP-IDF: sdkconfig + root CMakeLists.txt is the canonical layout.
-  const hasSdkconfig = existsSync(join(root, "sdkconfig")) || existsSync(join(root, "sdkconfig.defaults"));
+  const hasSdkconfig =
+    existsSync(join(root, "sdkconfig")) || existsSync(join(root, "sdkconfig.defaults"));
   const rootCMake = join(root, "CMakeLists.txt");
   const hasCMake = existsSync(rootCMake);
   if (hasSdkconfig && hasCMake) {
@@ -397,16 +399,32 @@ function detectFpga(root: string): Stack | null {
     // Xilinx Vivado project (.xpr) or Quartus (.qpf/.qsf)
     const xpr = entries.find((e) => e.endsWith(".xpr"));
     if (xpr) {
-      return { language: "VHDL / Verilog", manifestFile: xpr, framework: "Vivado", packageManager: "Vivado" };
+      return {
+        language: "VHDL / Verilog",
+        manifestFile: xpr,
+        framework: "Vivado",
+        packageManager: "Vivado",
+      };
     }
     const qpf = entries.find((e) => e.endsWith(".qpf") || e.endsWith(".qsf"));
     if (qpf) {
-      return { language: "VHDL / Verilog", manifestFile: qpf, framework: "Quartus", packageManager: "Quartus" };
+      return {
+        language: "VHDL / Verilog",
+        manifestFile: qpf,
+        framework: "Quartus",
+        packageManager: "Quartus",
+      };
     }
     // Bare HDL: any .vhd / .v / .sv at the root of the probed dir
-    const hdl = entries.find((e) => /\.(vhdl?|sv|svh)$/i.test(e)) ?? entries.find((e) => e.endsWith(".v"));
+    const hdl =
+      entries.find((e) => /\.(vhdl?|sv|svh)$/i.test(e)) ?? entries.find((e) => e.endsWith(".v"));
     if (hdl) {
-      const lang = hdl.endsWith(".vhd") || hdl.endsWith(".vhdl") ? "VHDL" : hdl.endsWith(".sv") || hdl.endsWith(".svh") ? "SystemVerilog" : "Verilog";
+      const lang =
+        hdl.endsWith(".vhd") || hdl.endsWith(".vhdl")
+          ? "VHDL"
+          : hdl.endsWith(".sv") || hdl.endsWith(".svh")
+            ? "SystemVerilog"
+            : "Verilog";
       return { language: lang, manifestFile: hdl };
     }
     return null;
@@ -466,9 +484,7 @@ function hasAnyExtRecursive(dir: string, exts: string[], maxDepth: number): bool
     const sub = join(dir, name);
     try {
       if (readdirSync(sub).length > 0 && hasAnyExtRecursive(sub, exts, maxDepth - 1)) return true;
-    } catch {
-      continue;
-    }
+    } catch {}
   }
   return false;
 }
@@ -485,15 +501,25 @@ function detectPhp(root: string): Stack | null {
   const hasAnyPhp = entries.some((e) => e.endsWith(".php"));
   if (!hasComposer && !hasIndexPhp && !hasAnyPhp) return null;
 
-  const manifest = hasComposer ? "composer.json" : hasIndexPhp ? "index.php" : entries.find((e) => e.endsWith(".php"))!;
+  const manifest = hasComposer
+    ? "composer.json"
+    : hasIndexPhp
+      ? "index.php"
+      : entries.find((e) => e.endsWith(".php"))!;
 
   let framework: string | undefined;
   if (hasComposer) {
     try {
-      const composer = readJsonSafe<{ require?: Record<string, string>; "require-dev"?: Record<string, string> }>(join(root, "composer.json"));
-      const txt = composer ? JSON.stringify(composer).toLowerCase() : readFileSync(join(root, "composer.json"), "utf8").toLowerCase();
+      const composer = readJsonSafe<{
+        require?: Record<string, string>;
+        "require-dev"?: Record<string, string>;
+      }>(join(root, "composer.json"));
+      const txt = composer
+        ? JSON.stringify(composer).toLowerCase()
+        : readFileSync(join(root, "composer.json"), "utf8").toLowerCase();
       if (txt.includes("laravel/framework")) framework = "Laravel";
-      else if (txt.includes("symfony/symfony") || txt.includes("symfony/framework-bundle")) framework = "Symfony";
+      else if (txt.includes("symfony/symfony") || txt.includes("symfony/framework-bundle"))
+        framework = "Symfony";
       else if (txt.includes("codeigniter4/framework")) framework = "CodeIgniter";
       else if (txt.includes("cakephp/cakephp")) framework = "CakePHP";
       else if (txt.includes("yiisoft/yii2")) framework = "Yii";
@@ -599,8 +625,7 @@ function detectRust(root: string): Stack | null {
   try {
     const m = readFileSync(manifest, "utf8").match(/^\s*name\s*=\s*"([^"]+)"/m);
     if (m?.[1]) rawName = m[1];
-  } catch {
-  }
+  } catch {}
   const stack: Stack = { language: "Rust", manifestFile: "Cargo.toml", packageManager: "cargo" };
   if (rawName !== undefined) stack.rawName = rawName;
   return stack;

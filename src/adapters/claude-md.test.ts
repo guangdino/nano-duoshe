@@ -2,13 +2,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import {
-  BEGIN_MARK,
-  END_MARK,
-  buildShellBlock,
-  syncShells,
-  uninstallShells,
-} from "./claude-md.js";
+import { BEGIN_MARK, END_MARK, buildShellBlock, syncShells, uninstallShells } from "./claude-md.js";
 
 describe("claude-md shell block manager", () => {
   let dir: string;
@@ -70,7 +64,10 @@ describe("claude-md shell block manager", () => {
     syncShells(dir, { createIfMissing: true });
     const original = readFileSync(join(dir, "CLAUDE.md"), "utf8");
 
-    const tampered = original.replace(buildShellBlock(), `${BEGIN_MARK}\n## Old version\n${END_MARK}`);
+    const tampered = original.replace(
+      buildShellBlock(),
+      `${BEGIN_MARK}\n## Old version\n${END_MARK}`,
+    );
     writeFileSync(join(dir, "CLAUDE.md"), tampered, "utf8");
 
     const results = syncShells(dir, { createIfMissing: true });

@@ -20,8 +20,7 @@ export function getVersion(): string {
         cachedVersion = pkg.version;
         return cachedVersion;
       }
-    } catch {
-    }
+    } catch {}
   }
 
   cachedVersion = "0.0.0-unknown";

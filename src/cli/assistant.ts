@@ -21,16 +21,28 @@ export function nudgeAfterRemember(root: string, contentLength: number): void {
 
   if (contentLength < 20 && shouldShowAndMark(root, "short-content")) {
     log.blank();
-    log.raw(kleur.gray("  💬 这条记录有点短，AI 可能看不太懂。下次试试写得更完整一点（这条提醒今天就到这）。"));
+    log.raw(
+      kleur.gray(
+        "  💬 这条记录有点短，AI 可能看不太懂。下次试试写得更完整一点（这条提醒今天就到这）。",
+      ),
+    );
     return;
   }
 
   const pending = getPendingCount(root);
   if (pending >= 5) {
     log.blank();
-    log.raw(kleur.gray(`  💬 你已经有 ${pending} 条记录等着确认了。运行 ${kleur.cyan("duoshe review")} 确认一下。`));
+    log.raw(
+      kleur.gray(
+        `  💬 你已经有 ${pending} 条记录等着确认了。运行 ${kleur.cyan("duoshe review")} 确认一下。`,
+      ),
+    );
   } else if (pending === 3) {
     log.blank();
-    log.raw(kleur.gray(`  💬 现在有 3 条待确认的记录了。要不要现在 ${kleur.cyan("duoshe review")} 看一眼？`));
+    log.raw(
+      kleur.gray(
+        `  💬 现在有 3 条待确认的记录了。要不要现在 ${kleur.cyan("duoshe review")} 看一眼？`,
+      ),
+    );
   }
 }

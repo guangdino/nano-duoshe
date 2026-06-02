@@ -50,14 +50,8 @@ export function detectProfile(scan: ProjectScan, root: string): ProfileGuess {
   }
   // Tiny project + filenames have CJK or emoji → almost certainly a kid or
   // tutorial follower. Real production projects don't name files this way.
-  const cjkOrEmojiFiles = names.filter(
-    (n) => CJK_RE.test(n) || EMOJI_RE.test(n),
-  );
-  if (
-    scan.totalFiles <= 8 &&
-    scan.topDirs.length === 0 &&
-    cjkOrEmojiFiles.length >= 2
-  ) {
+  const cjkOrEmojiFiles = names.filter((n) => CJK_RE.test(n) || EMOJI_RE.test(n));
+  if (scan.totalFiles <= 8 && scan.topDirs.length === 0 && cjkOrEmojiFiles.length >= 2) {
     return {
       profile: "kid",
       reason: "项目很小，文件名是中文或带 emoji（看起来像练习项目）",
@@ -94,7 +88,7 @@ export function detectProfile(scan: ProjectScan, root: string): ProfileGuess {
   if (
     existsSync(join(root, "hugo.toml")) ||
     existsSync(join(root, "hugo.yaml")) ||
-    existsSync(join(root, "config.toml")) && existsSync(join(root, "content"))
+    (existsSync(join(root, "config.toml")) && existsSync(join(root, "content")))
   ) {
     return { profile: "non_dev_site", reason: "识别到 Hugo 静态站点", confidence: "high" };
   }
@@ -174,7 +168,15 @@ export function detectProfile(scan: ProjectScan, root: string): ProfileGuess {
   }
 
   // ─── ai_app ────────────────────────────────────────────────────────
-  const aiFrameworks = ["Anthropic Claude", "OpenAI", "Google Gemini", "LangChain", "LlamaIndex", "Vercel AI SDK", "MCP server"];
+  const aiFrameworks = [
+    "Anthropic Claude",
+    "OpenAI",
+    "Google Gemini",
+    "LangChain",
+    "LlamaIndex",
+    "Vercel AI SDK",
+    "MCP server",
+  ];
   const aiFw = aiFrameworks.find((f) => fws.has(f));
   if (aiFw) {
     return {
@@ -197,11 +199,7 @@ export function detectProfile(scan: ProjectScan, root: string): ProfileGuess {
   }
 
   // ─── minimal but no other signal → kid (catch-all for tutorials) ─────
-  if (
-    scan.stacks.length === 0 &&
-    scan.topDirs.length === 0 &&
-    scan.totalFiles <= 8
-  ) {
+  if (scan.stacks.length === 0 && scan.topDirs.length === 0 && scan.totalFiles <= 8) {
     return {
       profile: "kid",
       reason: "项目很小、没有任何工程结构（看起来是练习或教程）",

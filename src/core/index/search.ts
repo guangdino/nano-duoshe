@@ -70,7 +70,11 @@ export type SearchOptions = {
   type?: string;
 };
 
-export function search(projectRoot: string, rawQuery: string, opts: SearchOptions = {}): SearchHit[] {
+export function search(
+  projectRoot: string,
+  rawQuery: string,
+  opts: SearchOptions = {},
+): SearchHit[] {
   const paths = vaultPathsFor(projectRoot);
   if (!existsSync(paths.indexDb)) {
     return [];
@@ -107,14 +111,14 @@ export function search(projectRoot: string, rawQuery: string, opts: SearchOption
          LIMIT ?`,
       )
       .all(...params) as {
-        id: string;
-        title: string;
-        path: string;
-        type: string;
-        content: string;
-        candidate_id: string | null;
-        score: number;
-      }[];
+      id: string;
+      title: string;
+      path: string;
+      type: string;
+      content: string;
+      candidate_id: string | null;
+      score: number;
+    }[];
 
     return rows.map((r) => {
       const hit: SearchHit = {

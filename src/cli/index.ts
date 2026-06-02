@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-import kleur from "kleur";
 import { Command } from "commander";
+import kleur from "kleur";
 import { checkForUpdate } from "../core/update/check.js";
 import { getVersion } from "../core/version.js";
 import { registerGraphCommand } from "./commands/graph.js";
@@ -20,7 +20,9 @@ const program = new Command();
 
 program
   .name("duoshe")
-  .description("DuoShe（夺舍）— 本地优先的项目记忆层，让 Claude Code / Codex / Cursor 等 AI 工具真正认识你的项目")
+  .description(
+    "DuoShe（夺舍）— 本地优先的项目记忆层，让 Claude Code / Codex / Cursor 等 AI 工具真正认识你的项目",
+  )
   .version(getVersion(), "-v, --version", "显示版本号")
   .helpOption("-h, --help", "显示帮助")
   .showSuggestionAfterError(true)
@@ -54,10 +56,16 @@ program.action(() => {
   }
   const here = process.cwd();
   process.stdout.write(`\n${kleur.bold("  DuoShe（夺舍） — 让 AI 真正认识你的项目")}\n\n`);
-  process.stdout.write(`  ${kleur.gray("项目记忆层，本地优先。给 Claude Code / Codex / Cursor 用。")}\n\n`);
+  process.stdout.write(
+    `  ${kleur.gray("项目记忆层，本地优先。给 Claude Code / Codex / Cursor 用。")}\n\n`,
+  );
   process.stdout.write(`  ${kleur.bold("第一次用？")}  在项目目录里运行：\n`);
-  process.stdout.write(`      ${kleur.cyan("duoshe init")}     ${kleur.gray(`# 在 ${here} 初始化记忆库`)}\n`);
-  process.stdout.write(`      ${kleur.cyan("duoshe guide")}    ${kleur.gray("# 回答 3 个核心问题，让 AI 认识这个项目")}\n\n`);
+  process.stdout.write(
+    `      ${kleur.cyan("duoshe init")}     ${kleur.gray(`# 在 ${here} 初始化记忆库`)}\n`,
+  );
+  process.stdout.write(
+    `      ${kleur.cyan("duoshe guide")}    ${kleur.gray("# 回答 3 个核心问题，让 AI 认识这个项目")}\n\n`,
+  );
   process.stdout.write(`  ${kleur.bold("常用命令：")}\n`);
   process.stdout.write(`      ${kleur.cyan('duoshe remember "..."')}    记一条重要的事\n`);
   process.stdout.write(`      ${kleur.cyan("duoshe review")}             看待确认的记录\n`);
@@ -101,7 +109,7 @@ function editDistance(a: string, b: string): number {
     curr[0] = i;
     for (let j = 1; j <= n; j++) {
       const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-      curr[j] = Math.min(prev[j]! + 1, curr[j - 1]! + 1, prev[j - 1]! + cost);
+      curr[j] = Math.min((prev[j] ?? 0) + 1, (curr[j - 1] ?? 0) + 1, (prev[j - 1] ?? 0) + cost);
     }
     [prev, curr] = [curr, prev];
   }
@@ -125,7 +133,13 @@ registerUpgradeCommand(program);
 // Suppressed for `upgrade` (it does its own check), `--version`, and `--help`.
 async function maybeNotifyUpdate(): Promise<void> {
   const argv2 = process.argv[2] ?? "";
-  if (argv2 === "upgrade" || argv2 === "-v" || argv2 === "--version" || argv2 === "-h" || argv2 === "--help") {
+  if (
+    argv2 === "upgrade" ||
+    argv2 === "-v" ||
+    argv2 === "--version" ||
+    argv2 === "-h" ||
+    argv2 === "--help"
+  ) {
     return;
   }
   const info = await checkForUpdate();

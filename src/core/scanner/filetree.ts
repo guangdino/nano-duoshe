@@ -33,29 +33,59 @@ const ALWAYS_IGNORE = new Set([
 ]);
 
 const SOURCE_EXTS = new Set([
-  ".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs",
-  ".py", ".pyi",
-  ".cs", ".vb", ".fs",
+  ".ts",
+  ".tsx",
+  ".js",
+  ".jsx",
+  ".mjs",
+  ".cjs",
+  ".py",
+  ".pyi",
+  ".cs",
+  ".vb",
+  ".fs",
   ".go",
   ".rs",
-  ".java", ".kt", ".scala",
-  ".rb", ".php", ".swift", ".m", ".mm",
-  ".c", ".cc", ".cpp", ".cxx", ".h", ".hpp",
-  ".lua", ".dart", ".ex", ".exs",
+  ".java",
+  ".kt",
+  ".scala",
+  ".rb",
+  ".php",
+  ".swift",
+  ".m",
+  ".mm",
+  ".c",
+  ".cc",
+  ".cpp",
+  ".cxx",
+  ".h",
+  ".hpp",
+  ".lua",
+  ".dart",
+  ".ex",
+  ".exs",
   ".sql",
-  ".tf", ".tfvars",
+  ".tf",
+  ".tfvars",
   // Embedded / firmware
   ".ino",
   // HDL — FPGA / ASIC
-  ".vhd", ".vhdl",
-  ".v", ".sv", ".svh",
+  ".vhd",
+  ".vhdl",
+  ".v",
+  ".sv",
+  ".svh",
   // IEC 61131-3 — PLC structured text and friends
-  ".st", ".scl", ".iec",
+  ".st",
+  ".scl",
+  ".iec",
   // MATLAB / Simulink — .m already covered (as Obj-C overlap)
-  ".mlx",          // MATLAB Live Script (XML)
-  ".slx", ".mdl",  // Simulink models (binary but THE source asset)
+  ".mlx", // MATLAB Live Script (XML)
+  ".slx",
+  ".mdl", // Simulink models (binary but THE source asset)
   // Scratch (kids learning to code) — binary but it IS their code
-  ".sb3", ".sb2",
+  ".sb3",
+  ".sb2",
 ]);
 
 // Role hints are in Chinese — they go directly into generated Markdown.
@@ -224,7 +254,10 @@ export type FileTreeResult = {
   aborted: boolean;
 };
 
-export function scanFileTree(root: string, extraDirHints: Record<string, string> = {}): FileTreeResult {
+export function scanFileTree(
+  root: string,
+  extraDirHints: Record<string, string> = {},
+): FileTreeResult {
   const acc: WalkAccumulator = {
     topDirs: new Map(),
     entryPoints: [],

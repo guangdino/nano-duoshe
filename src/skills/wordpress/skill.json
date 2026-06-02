@@ -1,9 +1,9 @@
 {
   "name": "wordpress",
   "version": "0.1.0",
-  "description": "WordPress / 静态站点专项支持 —— 激活后 rescan 为 WordPress 核心目录标注"千万别动"的警告标签，突出主题 / 插件 / 上传目录",
+  "description": "WordPress / 静态站点专项支持 —— 激活后 rescan 为 WordPress 核心目录标注「千万别动」的警告标签，突出主题 / 插件 / 上传目录",
   "enabledByDefault": false,
-  "postEnableHint": "已启用。运行 `duoshe rescan` 刷新：WordPress 核心目录会显示"不要动"警告，便于告知 AI 禁区。",
+  "postEnableHint": "已启用。运行 `duoshe rescan` 刷新：WordPress 核心目录会显示「不要动」警告，便于告知 AI 禁区。",
   "detectors": [],
   "dirHints": {
     "wp-admin": "WordPress 核心（千万别动）",

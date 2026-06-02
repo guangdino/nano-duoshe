@@ -1,11 +1,5 @@
-import {
-  cpSync,
-  existsSync,
-  mkdirSync,
-  readdirSync,
-  readFileSync,
-  rmSync,
-} from "node:fs";
+import type { Dirent } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { readConfig, writeConfig } from "../vault/config.js";
@@ -46,11 +40,7 @@ function readSkillMeta(skillDir: string): SkillJson {
   }
 }
 
-function updateEnabledSkillsConfig(
-  configPath: string,
-  skillName: string,
-  enable: boolean,
-): void {
+function updateEnabledSkillsConfig(configPath: string, skillName: string, enable: boolean): void {
   const cfg = readConfig(configPath);
   if (!cfg) return;
   if (enable) {
@@ -88,7 +78,7 @@ export function installBundledSkills(projectRoot: string): string[] {
   mkdirSync(paths.skillsEnabled, { recursive: true });
 
   const installed: string[] = [];
-  let entries;
+  let entries: Dirent<string>[] = [];
   try {
     entries = readdirSync(BUNDLED_SKILLS_DIR, { withFileTypes: true });
   } catch {
@@ -140,9 +130,7 @@ export function enableSkill(projectRoot: string, skillName: string): EnableResul
   } catch (err) {
     const code = (err as NodeJS.ErrnoException).code;
     if (code === "ENOENT") {
-      throw new Error(
-        `找不到技能 "${skillName}"。运行 \`duoshe skill list\` 查看所有可用技能。`,
-      );
+      throw new Error(`找不到技能 "${skillName}"。运行 \`duoshe skill list\` 查看所有可用技能。`);
     }
     throw err;
   }

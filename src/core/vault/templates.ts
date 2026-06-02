@@ -91,8 +91,7 @@ _由 DuoShe 于 ${scan.scannedAt} 生成。_
     docs: "文档",
   };
   const entries = scan.entryPoints.map((e) => `\`${e.path}\`（${entryKindZh[e.kind] ?? e.kind}）`);
-  const hot =
-    git.hotFiles?.map((f) => `\`${f.path}\` — 最近 30 天有 ${f.commits} 次提交`) ?? [];
+  const hot = git.hotFiles?.map((f) => `\`${f.path}\` — 最近 30 天有 ${f.commits} 次提交`) ?? [];
 
   return `# ${projectName}
 
@@ -126,9 +125,7 @@ ${
         git.remoteUrl ? `- 远端：${git.remoteUrl}` : "- 远端：_(仅本地)_",
         git.defaultBranch ? `- 默认分支：\`${git.defaultBranch}\`` : "",
         git.ageDays != null ? `- 首次提交：${relTime(git.ageDays)}` : "",
-        git.contributorCount != null
-          ? `- 贡献者数：${git.contributorCount}`
-          : "",
+        git.contributorCount != null ? `- 贡献者数：${git.contributorCount}` : "",
       ]
         .filter(Boolean)
         .join("\n")
@@ -225,10 +222,7 @@ ${dirLines.length === 0 ? "| _(无)_ | _(未识别)_ | 0 |" : dirLines.join("\n"
 ${
   scan.workspaces && scan.workspaces.length > 0
     ? `## monorepo 子包（来自 package.json workspaces）\n\n| 名字 | 路径 | 语言 |\n| --- | --- | --- |\n${scan.workspaces
-        .map(
-          (w) =>
-            `| \`${w.name}\` | \`${w.path}/\` | ${w.language ?? "JavaScript"} |`,
-        )
+        .map((w) => `| \`${w.name}\` | \`${w.path}/\` | ${w.language ?? "JavaScript"} |`)
         .join("\n")}\n`
     : ""
 }
@@ -283,11 +277,7 @@ _(暂无踩坑记录)_
 export function renderModulesMd(opts: { scan: ProjectScan }): string {
   const dirs = opts.scan.topDirs.map(
     (d) =>
-      `### \`${d.name}/\`\n\n` +
-      `**作用：** ${d.guessedRole ?? "_暂不明确，请补充_"}\n\n` +
-      `**负责：** _(这个模块负责什么？)_\n\n` +
-      `**不负责：** _(什么绝对不该放在这里？)_\n\n` +
-      `**依赖：** _(内部 / 外部依赖)_\n`,
+      `### \`${d.name}/\`\n\n**作用：** ${d.guessedRole ?? "_暂不明确，请补充_"}\n\n**负责：** _(这个模块负责什么？)_\n\n**不负责：** _(什么绝对不该放在这里？)_\n\n**依赖：** _(内部 / 外部依赖)_\n`,
   );
 
   return `# 模块边界
@@ -297,11 +287,7 @@ ${DRAFT_BANNER}
 > 各模块的边界 —— 每个部分负责什么、（更重要的）**不**负责什么。
 > 「不负责」那一行对 AI 来说价值最高。
 
-${
-  dirs.length === 0
-    ? "_未识别出顶层目录。_"
-    : dirs.join("\n---\n\n")
-}
+${dirs.length === 0 ? "_未识别出顶层目录。_" : dirs.join("\n---\n\n")}
 `;
 }
 

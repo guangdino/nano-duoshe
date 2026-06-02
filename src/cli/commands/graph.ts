@@ -1,9 +1,9 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import type { Command } from "commander";
 import kleur from "kleur";
-import { analyzeGraph, renderMermaid } from "../../skills/graph/index.js";
 import { readConfig } from "../../core/vault/config.js";
 import { vaultExists, vaultPathsFor } from "../../core/vault/index.js";
+import { analyzeGraph, renderMermaid } from "../../skills/graph/index.js";
 import { log } from "../log.js";
 
 const GRAPH_START = "<!-- BEGIN DUOSHE-GRAPH -->";
@@ -48,12 +48,22 @@ async function runGraph(opts: GraphOptions): Promise<void> {
 
   if (analysis.files.length === 0) {
     log.warn("没扫描到任何源码文件。");
-    log.raw(kleur.gray("  当前 graph 技能只支持 JavaScript / TypeScript（.ts/.tsx/.js/.jsx/.mjs/.cjs）。"));
-    log.raw(kleur.gray("  其他语言（Go / Python / Rust / C/C++ / VHDL / Verilog / Terraform 等）的依赖分析还在路上。"));
+    log.raw(
+      kleur.gray(
+        "  当前 graph 技能只支持 JavaScript / TypeScript（.ts/.tsx/.js/.jsx/.mjs/.cjs）。",
+      ),
+    );
+    log.raw(
+      kleur.gray(
+        "  其他语言（Go / Python / Rust / C/C++ / VHDL / Verilog / Terraform 等）的依赖分析还在路上。",
+      ),
+    );
     return;
   }
 
-  log.ok(`扫描了 ${analysis.files.length} 个源码文件，发现 ${analysis.edges.length} 条依赖关系（${elapsed}ms）`);
+  log.ok(
+    `扫描了 ${analysis.files.length} 个源码文件，发现 ${analysis.edges.length} 条依赖关系（${elapsed}ms）`,
+  );
 
   if (analysis.cycles.length > 0) {
     log.warn(`发现 ${analysis.cycles.length} 个循环依赖：`);
