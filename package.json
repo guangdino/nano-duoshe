@@ -1,6 +1,6 @@
 {
   "name": "nano-duoshe",
-  "version": "0.1.0-alpha.1",
+  "version": "0.1.0-alpha.2",
   "description": "Local-first project memory layer for AI coding agents (Claude Code / Codex / Cursor)",
   "keywords": [
     "mcp",
@@ -49,7 +49,7 @@
     "lint:fix": "biome check --write .",
     "format": "biome format --write .",
     "typecheck": "tsc --noEmit",
-    "version": "biome format --write package.json && git add package.json",
+    "version": "npx --yes @biomejs/biome@1.9.4 format --write package.json && git add package.json",
     "prepublishOnly": "npm run lint && npm run typecheck && npm run test && npm run build"
   },
   "dependencies": {
